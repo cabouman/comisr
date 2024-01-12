@@ -1,2 +1,6 @@
 matplotlib
 numpy
+cv2
+scipy
+skimage
+numba
