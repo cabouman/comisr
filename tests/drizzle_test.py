@@ -28,10 +28,6 @@ img1 = np.zeros(shape=(frames_number,600,1080), dtype=img.dtype)
 
 for i in range(frames_number):
     img1[i] = image_processing.crop_image(img, offset_max = 8)
-    #img1 = image_processing.crop_image(img, offset_max = 8)
-    #img2 = image_processing.crop_image(img, offset_max = 8)
-    #img3 = image_processing.crop_image(img, offset_max = 8)
-    #img4 = image_processing.crop_image(img, offset_max = 8)
 
 [width, height] = img1[0].shape
 print('cropped image size:', width,height)
@@ -40,7 +36,7 @@ cv2.imwrite('img1_cropped.png', img1[0])
 #cv2.imshow("cropped", img1)
 #cv2.waitKey(0)
 
-""" # Down sample input image 
+""" # Down sample input image - no longer used. Use opencv libraries
 # pix_img1 = img1.load()
 #img1_down = image_processing.down_sample(img1, f=2)
 #img2_down = image_processing.down_sample(img2, f=2)
@@ -65,18 +61,11 @@ for i in range(frames_number):
     img_down[i] = cv2.resize(img1[i], dim, interpolation = cv2.INTER_AREA)
     img_down_align[i] = image_processing.image_align(img_down[i], img_down[0])
 
-
 # drizzle image
 start_time = time.time()
 [img_up1, areamap] = image_processing.drizzle_trio(img_down[0], f=2, a = 0.5, weight = 2)
 print("---The running time for up sampling is %s seconds ---" % (time.time() - start_time))
-
-[img_up2, areamap] = image_processing.drizzle_trio(img_down[1], f=2, a = 0.5, weight = 2)
-[img_up3, areamap] = image_processing.drizzle_trio(img_down[2], f=2, a = 0.5, weight = 3)
-[img_up4, areamap] = image_processing.drizzle_trio(img_down[3], f=2, a = 0.5, weight = 4)
-
-img_drizzle = (img_up1 + img_up2 + img_up3 + img_up4)/4
-cv2.imwrite('img_drizzle.png', img_drizzle) 
+cv2.imwrite('img_drizzle1.png', img_up1) 
 
 start_time = time.time()
 [img_drizzle2, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[1], f=2, a = 0.5, weight = 1, I = img_up1)
@@ -85,7 +74,6 @@ print("---The running time for each drizzle is %s seconds ---" % (time.time() - 
 [img_drizzle3, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[2], f=2, a = 0.5, weight = 1, I = img_drizzle2)
 [img_drizzle4, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[3], f=2, a = 0.5, weight = 1, I = img_drizzle3)
 
-cv2.imwrite('img_drizzle1.png', img_up1) 
 cv2.imwrite('img_drizzle2.png', img_drizzle2) 
 cv2.imwrite('img_drizzle3.png', img_drizzle3) 
 cv2.imwrite('img_drizzle4.png', img_drizzle4) 
