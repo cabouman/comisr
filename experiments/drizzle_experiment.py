@@ -14,7 +14,9 @@ from scipy.signal import convolve2d as conv2
 from skimage import color, data, restoration
 
 # define number of frames
-frames_number = 4
+Fraction = 3
+frames_number = np.square(Fraction)
+
 
 # 1. Read in a high resolution image
 img = cv2.imread('./input/my_video_frame30.png', 0) 
@@ -25,9 +27,10 @@ print('Image Shape:', m, n)
 
 # Crop image with different offset
 img1 = np.zeros(shape=(frames_number,600,1080), dtype=img.dtype)
+img_drizzed = np.zeros(shape=(frames_number,600,1080), dtype=img.dtype)
 
 for i in range(frames_number):
-    img1[i] = image_processing.crop_image(img, offset_max = 8)
+    img1[i] = image_processing.crop_image(img, offset_max = Fraction)
 
 [width, height] = img1[0].shape
 print('cropped image size:', width,height)
@@ -48,8 +51,7 @@ cv2.imwrite('img1_cropped.png', img1[0])
 #cv2.destroyAllWindows() """
 
 # resize image
-f = 2
-scale_percent = 1/f # percent of original size
+scale_percent = 1/Fraction # percent of original size
 width = int(img1[0].shape[1] * scale_percent)
 height = int(img1[0].shape[0] * scale_percent)
 dim = (width, height)
@@ -61,22 +63,33 @@ for i in range(frames_number):
     img_down[i] = cv2.resize(img1[i], dim, interpolation = cv2.INTER_AREA)
     img_down_align[i] = image_processing.image_align(img_down[i], img_down[0])
 
+cv2.imwrite('img_down_0.png', img_down[0]) 
+
+# Obtain the size of the original image 
+[m, n] = img_down[0].shape
+print('Downsampled Image Shape:', m, n) 
+
 # drizzle image
 start_time = time.time()
-[img_up1, areamap] = image_processing.drizzle_trio(img_down[0], f=2, a = 0.5, weight = 2)
+[img_drizzed[0], areamap] = image_processing.drizzle_trio(img_down[0], f=Fraction, a = 0.5, weight = 2)
 print("---The running time for up sampling is %s seconds ---" % (time.time() - start_time))
-cv2.imwrite('img_drizzle1.png', img_up1) 
+cv2.imwrite('img_drizzle0.png', img_drizzed[0]) 
 
-start_time = time.time()
-[img_drizzle2, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[1], f=2, a = 0.5, weight = 1, I = img_up1)
-print("---The running time for each drizzle is %s seconds ---" % (time.time() - start_time))
+for i in range(1,frames_number):
+    start_time = time.time()
+    [img_drizzed[i], areamap, weightmap] = image_processing.drizzle(img_down[0], img_down[i], f=Fraction, a = 0.5, weight = 1, I = img_drizzed[0])
+    print("---The running time for each drizzle is %s seconds ---" % (time.time() - start_time))
 
-[img_drizzle3, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[2], f=2, a = 0.5, weight = 1, I = img_drizzle2)
-[img_drizzle4, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[3], f=2, a = 0.5, weight = 1, I = img_drizzle3)
+#[img_drizzle3, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[2], f=Fraction, a = 0.5, weight = 1, I = img_drizzle2)
+#[img_drizzle4, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[3], f=Fraction, a = 0.5, weight = 1, I = img_drizzle3)
+#[img_drizzle5, areamap, weightmap] = image_processing.drizzle(img_down[0], img_down_align[4], f=Fraction, a = 0.5, weight = 1, I = img_drizzle3)
 
-cv2.imwrite('img_drizzle2.png', img_drizzle2) 
-cv2.imwrite('img_drizzle3.png', img_drizzle3) 
-cv2.imwrite('img_drizzle4.png', img_drizzle4) 
+
+cv2.imwrite('img_drizzle1.png', img_drizzed[1]) 
+cv2.imwrite('img_drizzle2.png', img_drizzed[2]) 
+cv2.imwrite('img_drizzle3.png', img_drizzed[3])
+cv2.imwrite('img_drizzle_final.png', img_drizzed[frames_number-1]) 
+
 cv2.imwrite('areaMap4.png', areamap)
 
 #[img_drizzed, areamap] = drizzle(img1_down, f=3, a = 0.5, weight = 1)
