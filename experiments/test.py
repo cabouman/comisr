@@ -2,37 +2,68 @@ import numpy as np
 import MAP_PnP_ADMM
 import cv2
 
-# # Example usage:
-# # Define likelihood function (Gaussian likelihood)
-# def likelihood(params, data):
-#     mu, sigma = params
-#     return np.prod(1 / (np.sqrt(2 * np.pi) * sigma) * np.exp(-0.5 * ((data - mu) / sigma)**2))
 
-# # Define prior distribution (Gaussian prior)
-# def prior(params):
-#     mu, sigma = params
-#     return np.exp(-0.5 * (mu**2 + sigma**2))
+# Test
+# Read the high-resolution image
+z = cv2.imread('../data/high_resolution_frame.png', cv2.IMREAD_GRAYSCALE)
 
-# # Define the negative log posterior function
-# def negative_log_posterior(params):
-#     return -np.log(likelihood(params, data)) - np.log(prior(params))
+# Convert image to double precision
+z = z.astype(np.float64) / 255.0
 
-# Generate some example data
-np.random.seed(0)
-data = np.random.normal(loc=5, scale=2, size=1000)
+# Create a Gaussian filter
+h = cv2.GaussianBlur(np.zeros_like(z), (9, 9), sigmaX=0.5)
 
-# Initial guess for parameters
-initial_guess = [0, 1]
+# Downsample the image
+K = 4
+y = cv2.resize(z, (z.shape[1]//K, z.shape[0]//K))
 
-# Perform MAP estimation
-estimated_params = MAP_PnP_ADMM.map_estimation(MAP_PnP_ADMM.log_likelihood, MAP_PnP_ADMM.log_prior, initial_guess, data)
-print("MAP estimation parameters (mu, sigma):", estimated_params)
+# Add Gaussian noise
+noise_level = 10 / 255.0
+np.random.seed(0)  # Set random seed for reproducibility
+noise = noise_level * np.random.randn(*y.shape)
+y += noise
 
-# # Solve least squares problem using ADMM
-# img = cv2.imread('./input/my_video_frame30.png', 0) 
+out = PlugPlayADMM_super(y,h,K,0.0002)
 
-# rho = 1.0
-# max_iter = 100
-# solution = MAP_PnP_ADMM.ADMM_SR(img, rho, max_iter)
+cv2.imwrite('RestoredImage.png', out)
 
-# print("Solution:", solution)
+# Display the resulting image (optional)
+cv2.imshow('Restored Image', out)
+cv2.waitKey(0)
+cv2.destroyAllWindows()# Test
+# Read the high-resolution image
+z = cv2.imread('../data/high_resolution_frame.png', cv2.IMREAD_GRAYSCALE)
+
+# Convert image to double precision
+z = z.astype(np.float64) / 255.0
+
+# Create a Gaussian filter
+h = cv2.GaussianBlur(np.zeros_like(z), (9, 9), sigmaX=0.5)
+
+# Downsample the image
+K = 4
+y = cv2.resize(z, (z.shape[1]//K, z.shape[0]//K))
+
+# Add Gaussian noise
+noise_level = 10 / 255.0
+np.random.seed(0)  # Set random seed for reproducibility
+noise = noise_level * np.random.randn(*y.shape)
+y += noise
+
+out = PlugPlayADMM_super(y,h,K,0.0002)
+
+# Convert the denoised image to uint8 if it's of a different data type
+out_uint8 = out.astype(np.uint8)
+
+# Write the denoised image to a file
+cv2.imwrite('RestoredImage.png', out_uint8)
+# cv2.imwrite('RestoredImage.png', out)
+
+# Display the resulting image (optional)
+cv2.imshow('Restored Image', out)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+
+
