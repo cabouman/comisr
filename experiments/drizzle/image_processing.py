@@ -61,12 +61,46 @@ def image_align(img1, img2):
     #cv2.imwrite('output.jpg', transformed_img) 
     return transformed_img
 
+# Crop the image from original input image with fixed offset 
+@njit
+def crop_image_fixed(img, offset_max, offset_x, offset_y):
+    # x_shift = np.random.randint(0,offset_max)
+    # y_shift = np.random.randint(0,offset_max)
+    x_shift = offset_x
+    y_shift = offset_y 
+    
+    print("Fixed x_shift and y_shift: ", x_shift, y_shift)
+
+    # Test the code
+    DEBUG = 0
+
+    if DEBUG == 1: 
+        left = 580 - offset_max + 4
+        top = 280 + 1
+        right = left + 8
+        bottom = top + 8
+    else: 
+        #left = 200 - offset_max + x_shift + 350
+        #top = offset_max + y_shift + 250
+        #right = left + 300
+        #bottom = top + 180
+        left = 200 - offset_max + x_shift
+        top = 0 + y_shift
+        right = left + 1080
+        bottom = top + 600
+        
+
+    # Cropped image of above dimension
+    #img_croped = img.crop((left, top, right, bottom))
+    img_croped = img[top:bottom, left:right]
+    return img_croped 
+
 # Crop the image from original input image from random offset
 @njit
 def crop_image(img, offset_max):
     x_shift = np.random.randint(0,offset_max)
     y_shift = np.random.randint(0,offset_max)
-    print("x_shift and y_shift: ", x_shift, y_shift)
+    print("Random x_shift and y_shift: ", x_shift, y_shift)
 
     # Test the code
     DEBUG = 0
@@ -120,7 +154,6 @@ def drizzle_trio(im2, f, a, weight):
     im3 = np.zeros((m*f, n*f), dtype=im2.dtype)
     areaMap = np.zeros((m*f, n*f), dtype=im2.dtype)
     weightMap = np.ones((m*f, n*f), dtype=np.double)
-
 
     for i in range(0,m):
         for j in range(0,n):
