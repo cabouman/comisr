@@ -4,7 +4,7 @@ import cv2
 from scipy.signal import convolve2d
 from scipy.signal import fftconvolve
 # from skimage.restoration import denoise_bm3d
-
+import approximal_map
 
 def construct_GGt(h, K, rows, cols):
     # Eigen-decomposition for super-resolution
@@ -194,8 +194,11 @@ def PlugPlayADMM_super(y, h, K, lam):
 
         # Inverse step
         xtilde = v-u
-        rhs = Gty + np.dot(rho, xtilde)
-        x = (rhs - Gt(np.fft.ifft2(np.fft.fft2(G(rhs))/(GGt + rho))))/rho
+        #rhs = Gty + np.dot(rho, xtilde)
+        #x = (rhs - Gt(np.fft.ifft2(np.fft.fft2(G(rhs))/(GGt + rho))))/rho
+
+        x = approximal_map.approximal_map_F(h,K,rho,y,xtilde)
+
 
         # Update v
         v = x + u
