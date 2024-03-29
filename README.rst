@@ -68,7 +68,7 @@ Installing
 
 
 Running Experiment(s)
----------------
+---------------------
 
 Run the Experiment that use the approximal map funciton directly or used in the PnP method:
 
