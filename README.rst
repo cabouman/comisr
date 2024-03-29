@@ -74,28 +74,32 @@ Running Experiment(s)
 On your local system, now you should have a local repository cloned from the remote repository. 
 Then, do the following:
 
-Change to the root of the local repository.
+1. Change to the root of the local repository.
+
     .. code-block::
         cd comiser   
 
-List all your branches:
+2. List all your branches:
+
     .. code-block::
     git branch -a      
 
-You should see something similar to the following:
+3. You should see something similar to the following:
     .. code-block::
+
         * main   
         drizzle_test
         remotes/origin/drizzle_test
         remotes/origin/main     
 
-Checkout the branch you want to use: drizzle_test
+4. Checkout the branch you want to use: drizzle_test
 
     .. code-block::
+        
         git checkout drizzle_test      
 
 
-Run the Experiment that use the approximal map funciton directly or used in the PnP method:
+5. Run the experiment that use the approximal map funciton directly or used in the PnP method:
     .. code-block::
 
         python experiment/PnP/experiment_approximal.py
