@@ -75,27 +75,24 @@ On your local system, now you should have a local repository cloned from the rem
 Then, do the following:
 
 Change to the root of the local repository.
-.. code-block::
-    cd comiser   
+    .. code-block::
+        cd comiser   
 
 List all your branches:
-
-.. code-block::
+    .. code-block::
     git branch -a      
 
 You should see something similar to the following:
-
-.. code-block::
-    * main   
-    drizzle_test
-    remotes/origin/drizzle_test
-    remotes/origin/main     
-
+    .. code-block::
+        * main   
+        drizzle_test
+        remotes/origin/drizzle_test
+        remotes/origin/main     
 
 Checkout the branch you want to use: drizzle_test
 
-.. code-block::
-    git checkout drizzle_test      
+    .. code-block::
+        git checkout drizzle_test      
 
 
 Run the Experiment that use the approximal map funciton directly or used in the PnP method:
