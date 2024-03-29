@@ -66,9 +66,12 @@ Installing
                 pip install -e .
 
 
+
 Running Experiment(s)
+---------------
 
 Run the Experiment that use the approximal map funciton directly or used in the PnP method:
+
     .. code-block::
 
         python experiment/PnP/experiment_approximal.py
