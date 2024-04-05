@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 # import MAP_PnP_ADMM
-import approximal_map
+import proximal_map as proximal_map
 K = 4
 
 y = cv2.imread('DownImage8.png', cv2.IMREAD_GRAYSCALE)
@@ -21,7 +21,7 @@ cols  = np.dot(cols_in,K)
 x = np.zeros((rows_in*K, cols_in*K), dtype=np.float64)
 
 for iter in range(10):
-    out_a = approximal_map.approximal_map_F(h,K,1,y,x)
+    out_a = proximal_map.proximal_map_F(h,K,1,y,x)
 
     
     if iter % 2 == 0:

@@ -63,7 +63,7 @@ def upsample2(x, K):
 # input data: 𝑦, 𝑥
 # output: closed form solution of the approximal map using Fourier transformation 
 
-def approximal_map_F(h,K,rho,y,xtilde):
+def proximal_map_F(h,K,rho,y,xtilde):
     # y: input image
     # h: psf or bulerring filter
     # K: down/up samping factor

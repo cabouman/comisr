@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import MAP_PnP_ADMM
-import approximal_map
+import proximal_map as proximal_map
 
 # Load in the noisy image
 y = cv2.imread('NoisyImage.png', cv2.IMREAD_GRAYSCALE)
