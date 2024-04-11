@@ -4,6 +4,26 @@ import cv2
 from scipy.signal import convolve2d
 from scipy.signal import fftconvolve
 # from skimage.restoration import denoise_bm3d
+from scipy.ndimage import gaussian_filter
+
+
+
+def create_rotationally_symmetric_gaussian_filter(hsize, sigma):
+    # Create a zero matrix of the specified size
+    filter_matrix = np.zeros(hsize)
+    
+    # Compute the center index
+    center_index = tuple(np.array(hsize) // 2)
+    
+    # Set the center value to 1
+    filter_matrix[center_index] = 1
+    
+    # Apply Gaussian blur to the filter matrix
+    gaussian_filter_matrix = gaussian_filter(filter_matrix, sigma)
+    
+    return gaussian_filter_matrix
+
+
 
 
 def construct_GGt(h, K, rows, cols):
@@ -20,7 +40,7 @@ def construct_GGt(h, K, rows, cols):
     g = np.zeros((int(L), int(L)))  # initialize new filter
     for i in range(-int(np.floor(L / 2)), int(np.floor(L / 2)) + 1):
         for j in range(-int(np.floor(L / 2)), int(np.floor(L / 2)) + 1):
-            g[i + int(np.floor(L / 2)), j + int(np.floor(L / 2))] = hth[int(yc + K * i), int(xc + K * j)]
+            g[i + int(np.floor(L / 2))-1, j + int(np.floor(L / 2))-1] = hth[int(yc + K * i-1), int(xc + K * j-1)]
     
     GGt = np.abs(np.fft.fft2(g, (int(rows / K), int(cols / K))))
     
