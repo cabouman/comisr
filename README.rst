@@ -77,14 +77,17 @@ Then, do the following:
 1. Change to the root of the local repository.
 
     .. code-block::
+
         cd comiser   
 
 2. List all your branches:
 
     .. code-block::
+
     git branch -a      
 
 3. You should see something similar to the following:
+
     .. code-block::
 
         * main   
@@ -95,13 +98,14 @@ Then, do the following:
 4. Checkout the branch you want to use: drizzle_test
 
     .. code-block::
-        
+
         git checkout drizzle_test      
 
 
 5. Run the experiment that use the approximal map funciton directly or used in the PnP method:
-    .. code-block::
 
+    .. code-block::
+        
         python experiment/PnP/experiment_approximal.py
         python experiment/PnP/experiment_PnP.py
 
