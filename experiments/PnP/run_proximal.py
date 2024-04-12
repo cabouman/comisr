@@ -59,7 +59,7 @@ else:
 
 for iter in range(100):
 
-    out_a = proximal_map.proximal_map_F(h,K,1,y,x)
+    out_a = proximal_map.proximal_map_F(x,h,K,1,y)
     
     if iter % 1 == 0:
         # Convert the denoised image to uint8 if it's of a different data type
