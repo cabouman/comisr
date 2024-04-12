@@ -4,7 +4,7 @@ import cv2
 from scipy.signal import convolve2d
 from scipy.signal import fftconvolve
 # from skimage.restoration import denoise_bm3d
-import approximal_map
+import proximal_map as proximal_map
 
 
 def proj(x, bound=None):
@@ -84,7 +84,7 @@ def PlugPlayADMM_super(y, h, K, lam):
         xtilde = v-u
         #rhs = Gty + np.dot(rho, xtilde)
         #x = (rhs - Gt(np.fft.ifft2(np.fft.fft2(G(rhs))/(GGt + rho))))/rho
-        x = approximal_map.approximal_map_F(h,K,rho,y,xtilde)
+        x = proximal_map.proximal_map_F(xtilde,h,K,rho,y)
 
         # Update v
         v = x + u
