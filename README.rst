@@ -102,13 +102,19 @@ Then, do the following:
         git checkout drizzle_test      
 
 
-5. Run the experiment that use the approximal map funciton directly or used in the PnP method:
+5. Generate the simulation image from grount truth:
 
     .. code-block::
 
         python experiment/PnP/run_proximal.py
         python experiment/PnP/run_PnP.py
 
+6. Test the proximal map function:
+
+    .. code-block::
+
+        python experiment/PnP/run_proximal.py
+        python experiment/PnP/run_PnP.py
 
 Running Demo(s)
 ---------------
