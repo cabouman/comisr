@@ -84,7 +84,7 @@ Then, do the following:
 
     .. code-block::
 
-    git branch -a      
+        git branch -a      
 
 3. You should see something similar to the following:
 
@@ -105,7 +105,7 @@ Then, do the following:
 5. Run the experiment that use the approximal map funciton directly or used in the PnP method:
 
     .. code-block::
-        
+
         python experiment/PnP/experiment_approximal.py
         python experiment/PnP/experiment_PnP.py
 
