@@ -106,8 +106,7 @@ Then, do the following:
 
     .. code-block::
 
-        python experiment/PnP/run_proximal.py
-        python experiment/PnP/run_PnP.py
+        python experiment/PnP/run_forward.py
 
 6. Test the proximal map function:
 
