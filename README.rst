@@ -106,8 +106,8 @@ Then, do the following:
 
     .. code-block::
 
-        python experiment/PnP/experiment_approximal.py
-        python experiment/PnP/experiment_PnP.py
+        python experiment/PnP/run_proximal.py
+        python experiment/PnP/run_PnP.py
 
 
 Running Demo(s)
