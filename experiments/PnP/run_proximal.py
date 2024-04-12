@@ -6,15 +6,16 @@ from scipy.ndimage import gaussian_filter
 
 K = 4
 
-y = cv2.imread('DownImage8.png', cv2.IMREAD_GRAYSCALE)
+y_in = cv2.imread('DownImage.png', cv2.IMREAD_GRAYSCALE)
 
 # Convert image to double precision
 # y = y.astype(np.float64) / 255.0
 
 # Check if the image was successfully read
-if y is not None:
+if y_in is not None:
     # Convert image to double precision
-    y = y.astype(np.float64) / 255.0
+    y = y_in.astype(np.float64) / 255.0
+
 else:
     print("Error: Failed to read the image")
     
@@ -34,7 +35,7 @@ print(np.max(h)) """
 
 # Define the kernel size and standard deviation
 kernel_size = (9, 9)
-sigmaX = 0.5
+sigmaX = 0.05
 
 h = proximal_map.create_rotationally_symmetric_gaussian_filter(kernel_size, sigmaX)
 print("Rotationally symmetric Gaussian filter:")
@@ -45,9 +46,16 @@ print(h)
 
 rows_in,cols_in = y.shape
 rows  = np.dot(rows_in, K)
-cols  = np.dot(cols_in,K)
+cols  = np.dot(cols_in, K)
 
 x = np.zeros((rows_in*K, cols_in*K), dtype=np.float64)
+# x = cv2.imread('OrigImage.png', cv2.IMREAD_GRAYSCALE)
+# Check if the image was successfully read
+if x is not None:
+    # Convert image to double precision
+    x = x.astype(np.float64) / 255.0
+else:
+    print("Error: Failed to read the original image")
 
 for iter in range(100):
 
@@ -66,8 +74,11 @@ for iter in range(100):
         cv2.imwrite(output_filename, out_uint8)
         cv2.imwrite(diff_filename, diff_uint8)
 
-    x = out_a
+        print("mean of output and diff value:", "\t", out_uint8.mean(), "\t", diff_uint8.mean())
 
+    x = out_a
+print ("--------")
+print("mean of input image value:", "\t", y_in.mean())
 
 
 
