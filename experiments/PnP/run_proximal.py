@@ -9,7 +9,7 @@ K = 4
 y_in = cv2.imread('DownImage.png', cv2.IMREAD_GRAYSCALE)
 
 # Convert image to double precision
-# y = y.astype(np.float64) / 255.0
+# measured_image = measured_image.astype(np.float64) / 255.0
 
 # Check if the image was successfully read
 if y_in is not None:
@@ -22,16 +22,16 @@ else:
 # Create a Gaussian filter
     
 """ 
-h = cv2.GaussianBlur(np.zeros_like(y), (9, 9), sigmaX=0.5)
+filter_psf = cv2.GaussianBlur(np.zeros_like(measured_image), (9, 9), sigmaX=0.5)
 
-# Assuming y is defined elsewhere or you have its shape available
-y = np.zeros((100, 100))  # Example shape, adjust as needed
+# Assuming measured_image is defined elsewhere or you have its shape available
+measured_image = np.zeros((100, 100))  # Example shape, adjust as needed
 
 # Create a Gaussian filter with a kernel size of (9, 9) and standard deviation sigmaX=0.5
-h = cv2.GaussianBlur(np.zeros_like(y), (9, 9), sigmaX=5)
+filter_psf = cv2.GaussianBlur(np.zeros_like(measured_image), (9, 9), sigmaX=5)
 
 # Calculate and print the maximum value of the resulting Gaussian filter
-print(np.max(h)) """
+print(np.max(filter_psf)) """
 
 # Define the kernel size and standard deviation
 kernel_size = (9, 9)
@@ -42,7 +42,7 @@ print("Rotationally symmetric Gaussian filter:")
 print(h)
 
 
-#out_ADMM = MAP_PnP_ADMM.PlugPlayADMM_super(y,h,K,0.0002)
+#out_ADMM = MAP_PnP_ADMM.PlugPlayADMM_super(measured_image,filter_psf,subsampling_rate,0.0002)
 
 rows_in,cols_in = y.shape
 rows  = np.dot(rows_in, K)

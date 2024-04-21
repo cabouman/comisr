@@ -7,27 +7,27 @@ K = 4
 
 """ # Prepare the blurred data 
 # Read the high-resolution image
-z = cv2.imread('../../data/high_resolution_frame.png', cv2.IMREAD_GRAYSCALE)
-cv2.imwrite('OrigImage.png', z)
+input_image = cv2.imread('../../data/high_resolution_frame.png', cv2.IMREAD_GRAYSCALE)
+cv2.imwrite('OrigImage.png', input_image)
 
 # Convert image to double precision
-z = z.astype(np.float64) / 255.0
+input_image = input_image.astype(np.float64) / 255.0
 
 # Create a Gaussian filter
-h = cv2.GaussianBlur(np.zeros_like(z), (9, 9), sigmaX=0.5)
+filter_psf = cv2.GaussianBlur(np.zeros_like(input_image), (9, 9), sigmaX=0.5)
 
 # Downsample the image
-y = cv2.resize(z, (z.shape[1]//K, z.shape[0]//K))
-cv2.imwrite('DownImage.png', y*255)
+measured_image = cv2.resize(input_image, (input_image.shape[1]//subsampling_rate, input_image.shape[0]//subsampling_rate))
+cv2.imwrite('DownImage.png', measured_image*255)
 
 # Add Gaussian noise
 noise_level = 10 / 255.0
 np.random.seed(0)  # Set random seed for reproducibility
-noise = noise_level * np.random.randn(*y.shape)
-y += noise 
+noise = noise_level * np.random.randn(*measured_image.shape)
+measured_image += noise 
 
 # Write the denoised image to a file
-cv2.imwrite('NoisyImage.png', y*255)
+cv2.imwrite('NoisyImage.png', measured_image*255)
 """
 
 y = cv2.imread('NoisyImage.png', cv2.IMREAD_GRAYSCALE)
@@ -38,7 +38,7 @@ y = y.astype(np.float64) / 255.0
 # Create a Gaussian filter
 h = cv2.GaussianBlur(np.zeros_like(y), (9, 9), sigmaX=0.5)
 
-#out_ADMM = MAP_PnP_ADMM.PlugPlayADMM_super(y,h,K,0.0002)
+#out_ADMM = MAP_PnP_ADMM.PlugPlayADMM_super(measured_image,filter_psf,subsampling_rate,0.0002)
 
 rows_in,cols_in = y.shape
 rows  = np.dot(rows_in, K)

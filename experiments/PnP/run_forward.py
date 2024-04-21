@@ -40,11 +40,11 @@ cv2.imwrite('DownImage.png', out_uint8)
 # Add Gaussian noise
 noise_level = 10 / 255.0
 np.random.seed(0)  # Set random seed for reproducibility
-noise = noise_level * np.random.randn(*y.shape)
-y += noise 
+noise = noise_level * np.random.randn(*measured_image.shape)
+measured_image += noise 
 
 # Write the denoised image to a file
-cv2.imwrite('NoisyImage.png', y*255) """
+cv2.imwrite('NoisyImage.png', measured_image*255) """
 
 
 

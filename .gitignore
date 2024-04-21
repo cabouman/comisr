@@ -2,7 +2,7 @@
 demo/output/*
 demo/data/*
 experiment/data/*
-experiment/output/
+experiment/output/*
 
 # Mac OSX files
 .DS_Store

@@ -1,6 +1,7 @@
 matplotlib
 numpy
-cv2
 scipy
-skimage
-numba
+pyyaml
+dotmap
+setuptools
+pillow

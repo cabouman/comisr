@@ -37,7 +37,7 @@ def PlugPlayADMM_super(y, h, K, lam):
     Parameters:
         A (numpy.ndarray): Design matrix.
         b (numpy.ndarray): Target vector.
-        rho (float): Penalty parameter.
+        lambda_param (float): Penalty parameter.
         max_iter (int): Maximum number of iterations.
 
     Returns:
@@ -61,9 +61,9 @@ def PlugPlayADMM_super(y, h, K, lam):
     v = np.zeros(shape=(rows,cols), dtype=y.dtype)
     u = np.zeros(shape=(rows,cols), dtype=y.dtype)
 
-    #G,Gt = defGGt(h,K)
-    #GGt = construct_GGt(h,K,rows,cols)
-    #Gty = Gt(y)
+    #G,Gt = defGGt(filter_psf,subsampling_rate)
+    #GGt = construct_GGt(filter_psf,subsampling_rate,rows,cols)
+    #Gty = Gt(measured_image)
     v   = cv2.resize(y, (rows_in*K, cols_in*K))
     x   = v
     residual  = np.inf
@@ -73,7 +73,7 @@ def PlugPlayADMM_super(y, h, K, lam):
     for k in range(max_iter):
         print(k)
         # Update x
-        #x = map_estimation(log_likelihood, log_prior, initial_guess, y)
+        #x = map_estimation(log_likelihood, log_prior, initial_guess, measured_image)
 
         # store x, v, u from previous iteration for psnr residual calculation
         x_old = x
@@ -82,8 +82,8 @@ def PlugPlayADMM_super(y, h, K, lam):
 
         # Inverse step ( The proximal map solution of the forward model)
         xtilde = v-u
-        #rhs = Gty + np.dot(rho, xtilde)
-        #x = (rhs - Gt(np.fft.ifft2(np.fft.fft2(G(rhs))/(GGt + rho))))/rho
+        #rhs = Gty + np.dot(lambda_param, input_image)
+        #x = (rhs - Gt(np.fft.ifft2(np.fft.fft2(G(rhs))/(GGt + lambda_param))))/lambda_param
         x = proximal_map.proximal_map_F(xtilde,h,K,rho,y)
 
         # Update v
@@ -93,16 +93,16 @@ def PlugPlayADMM_super(y, h, K, lam):
         vtilde = proj(vtilde)
         sigma = np.sqrt(lam/rho)
         # Denoise the grayscale image
-        # denoised_image = cv2.fastNlMeansDenoising(gray_image, None, h=10, templateWindowSize=7, searchWindowSize=21)
-        #v = cv2.fastNlMeansDenoising(vtilde, None, h=10, templateWindowSize=7, searchWindowSize=21)
+        # denoised_image = cv2.fastNlMeansDenoising(gray_image, None, filter_psf=10, templateWindowSize=7, searchWindowSize=21)
+        #v = cv2.fastNlMeansDenoising(vtilde, None, filter_psf=10, templateWindowSize=7, searchWindowSize=21)
 
         # Convert the image to float32
         vtilde = vtilde.astype(np.float32)
 
         # Denoise the grayscale image using Non-Local Means Denoising
-        # v = cv2.fastNlMeansDenoising(vtilde, None, h=10, templateWindowSize=7, searchWindowSize=21)
+        # v = cv2.fastNlMeansDenoising(vtilde, None, filter_psf=10, templateWindowSize=7, searchWindowSize=21)
 
-        # v = denoise_bm3d(vtilde,sigma)
+        # v = denoise_bm3d(vtilde,filter_std)
         
         # Apply Gaussian blur for denoising
         #denoised_image = cv2.GaussianBlur(noisy_image, (5, 5), 0)
@@ -111,7 +111,7 @@ def PlugPlayADMM_super(y, h, K, lam):
         # Update u
         u = u + x - v
 
-        # update rho  % Yufang: disable this step
+        # update lambda_param  % Yufang: disable this step
         rho=rho*gamma
 
         # Calculate NMSE of residule
