@@ -94,7 +94,7 @@ def resize_image(arr, new_shape):
 
     Args:
     image (np.ndarray): Input 2D floating-point array (image data).
-    new_shape (tuple): New width and height as a tuple (M, N).
+    high_res_shape (tuple): New width and height as a tuple (M, N).
 
     Returns:
     np.ndarray: Resized 2D floating-point array.

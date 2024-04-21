@@ -13,16 +13,18 @@ def proximal_map(prox_input, measured_image, kernel, decimation_rate, lambda_par
     Returns:
     """
     # Compute temporary image denoted by b in notes
-    tmp_image = measured_image - apply_G(prox_input, kernel, decimation_rate)
-    tmp_image = apply_Gt(tmp_image, kernel, decimation_rate)
-    tmp_image = apply_G(tmp_image, kernel, decimation_rate)
+    epsilon_image = measured_image - apply_G(prox_input, kernel, decimation_rate)
+    b_image = apply_Gt(epsilon_image, kernel, decimation_rate)
+    c_image = apply_G(b_image, kernel, decimation_rate)
 
     # Generate the special filter kernel that will be needed.
     htilde0 = get_htilde0(kernel, decimation_rate)
 
     # Pad and shift the kernel so its FFT will be real valued.
     htilde0_padded = pad_and_shift_kernel(htilde0, measured_image.shape)
-    transfer_function = 1.0 /( 1 + lambda_param * np.fft.fft2(htilde0_padded) )
+
+    # Compute the transfer functino associated
+    transfer_function = 1.0 /( np.fft.fft2(htilde0_padded) + (lambda_param ** 2) )
     real_transfer_function = transfer_function.real
 
     # The FFT should be real valued, so check that this is true.
@@ -31,12 +33,14 @@ def proximal_map(prox_input, measured_image, kernel, decimation_rate, lambda_par
         warnings.warn("The error = max(abs(imaginary part)) is large.", UserWarning)
 
     # Calculate Wiener filtered signal
-    tmp_output = (np.fft.ifft2(real_transfer_function * np.fft.fft2(tmp_image))).real
-    print(f'tmp.shape: {tmp_output.shape}')
+    d_image = (np.fft.ifft2(real_transfer_function * np.fft.fft2(c_image))).real
 
-    prox_output_image = apply_Gt(tmp_output, kernel, decimation_rate) + prox_input
-    print(f'prox_output_image.shape: {prox_output_image.shape}')
+    # Compute the output change
+    delta_output = (lambda_param ** 2)*(b_image - apply_Gt(d_image, kernel, decimation_rate))
+    print(f'delta_output max absolute value: {jnp.max(jnp.abs(delta_output))}')
 
+    # Compute the prox output
+    prox_output_image = delta_output + prox_input
     return prox_output_image
 
 
