@@ -7,6 +7,39 @@ import jax
 import jax.numpy as jnp
 
 
+def proximal_map(prox_input, measured_image, kernel, decimation_rate, lambda_param ):
+    """
+    Compute the proximal map funtion
+    Returns:
+    """
+    # Compute temporary image denoted by b in notes
+    tmp_image = measured_image - apply_G(prox_input, kernel, decimation_rate)
+    tmp_image = apply_Gt(tmp_image, kernel, decimation_rate)
+    tmp_image = apply_G(tmp_image, kernel, decimation_rate)
+
+    # Generate the special filter kernel that will be needed.
+    htilde0 = get_htilde0(kernel, decimation_rate)
+
+    # Pad and shift the kernel so its FFT will be real valued.
+    htilde0_padded = pad_and_shift_kernel(htilde0, measured_image.shape)
+    transfer_function = 1.0 /( 1 + lambda_param * np.fft.fft2(htilde0_padded) )
+    real_transfer_function = transfer_function.real
+
+    # The FFT should be real valued, so check that this is true.
+    error = jnp.max(jnp.abs(transfer_function.imag))
+    if error > 1e-6:
+        warnings.warn("The error = max(abs(imaginary part)) is large.", UserWarning)
+
+    # Calculate Wiener filtered signal
+    tmp_output = (np.fft.ifft2(real_transfer_function * np.fft.fft2(tmp_image))).real
+    print(f'tmp.shape: {tmp_output.shape}')
+
+    prox_output_image = apply_Gt(tmp_output, kernel, decimation_rate) + prox_input
+    print(f'prox_output_image.shape: {prox_output_image.shape}')
+
+    return prox_output_image
+
+
 def filter_2D_jax(image, kernel):
     """
     Applies a 2D filter to an image using JAX.
@@ -26,8 +59,61 @@ def filter_2D_jax(image, kernel):
     result = jax.scipy.signal.convolve(image, kernel, mode='same')
     return result
 
+def get_htilde0(kernel, decimation_rate):
+    """
+    Returns the filter htilde_0 which is formed by taking the autocorrelation of kernel with itself and subsampling
+    along each axis by a factor of decimation_rate.
+    Args:
+        kernel (jnp.ndarray): 2D kernel
+        decimation_rate (int): Integer decimation rate.
 
-def gaussian_filter(P, filter_std):
+    Returns:
+        jnp.ndarray
+    """
+    htilde_0 = filter_2D_jax(kernel, flip_array(kernel))[::decimation_rate, ::decimation_rate]
+
+    return htilde_0
+
+def flip_array(arr):
+    """
+    Flip a 2D array along both axes.
+
+    Args:
+    image (np.ndarray): Input 2D array.
+
+    Returns:
+    np.ndarray: The array flipped along both vertical and horizontal axes.
+    """
+    # Flip the array vertically and horizontally
+    flipped_arr = arr[::-1, ::-1]
+    return flipped_arr
+
+
+def upsample_image_jax(image, upsample_rate):
+    """
+    Upsample a 2D JAX array by inserting zeros to increase its size by a factor of upsample_rate in each direction.
+
+    Args:
+    image (jnp.ndarray): The input 2D JAX array.
+    upsample_rate (int): The upsampling factor, specifying how much to enlarge the array.
+
+    Returns:
+    jnp.ndarray: An upsampled 2D JAX array with size increased by a factor of upsample_rate.
+    """
+    # Determine the new shape
+    rows, cols = image.shape
+    upsampled_shape = (rows * upsample_rate, cols * upsample_rate)
+    # Create a new JAX array of zeros with the upsampled shape
+    upsampled_image = jnp.zeros(upsampled_shape, dtype=image.dtype)
+
+    # Insert the original elements at the correct positions
+    upsampled_image = upsampled_image.at[::upsample_rate, ::upsample_rate].set(image)
+
+    return upsampled_image
+
+
+
+def gen_gaussian_filter(P, filter_std):
     """
     Generates a Gaussian filter of size (2P+1)x(2P+1) with standard deviation filter_std.
 
@@ -56,90 +142,67 @@ def gaussian_filter(P, filter_std):
     return kernel
 
 
-def construct_GGt(h, K, rows, cols):
-    # Eigen-decomposition for super-resolution
-    
-    hth = convolve2d(h, np.rot90(h, 2), mode='full')
-    
-    yc = np.ceil(hth.shape[0] / 2)  # mark the center coordinate
-    xc = np.ceil(hth.shape[1] / 2)
-    
-    L = np.floor(hth.shape[0] / K)  # width of the new filter
-                                     # = (1/k) with of the original filter
-    
-    g = np.zeros((int(L), int(L)))  # initialize new filter
-    for i in range(-int(np.floor(L / 2)), int(np.floor(L / 2)) + 1):
-        for j in range(-int(np.floor(L / 2)), int(np.floor(L / 2)) + 1):
-            g[i + int(np.floor(L / 2))-1, j + int(np.floor(L / 2))-1] = hth[int(yc + K * i-1), int(xc + K * j-1)]
-    
-    GGt = np.abs(np.fft.fft2(g, (int(rows / K), int(cols / K))))
-    
-    return GGt
-
-
-
-def defGGt(h, K):
+def apply_G(image, kernel, decimation_rate):
     """
-    Operators for super-resolution
-    """
-    def G(x):
-        return fdown(x, h, K)
-    
-    def Gt(x):
-        return upf(x, h, K)
-    
-    return G, Gt
-
-def fdown(x, h, K):
-    tmp = fftconvolve(x, h, mode='same')
-    y = downsample2(tmp, K)
-    return y
-
-def upf(x, h, K):
-    tmp = upsample2(x, K)
-    y = fftconvolve(tmp, h, mode='same')
-    return y
-
-def downsample2(x, K):
-    return x[::K, ::K]
-
-def upsample2(x, K):
-    return np.kron(x, np.ones((K, K)))
-
-
-
-# The approximal map implementation using Fourier transform:
-# input parameters: filter_psf, subsampling_rate, 𝜌
-# input data: 𝑦, 𝑥
-# output: closed form solution of the approximal map using Fourier transformation 
-
-def proximal_map_F(input_image, filter_psf, subsampling_rate, lambda_param, measured_image):
-    """
-    Computes the proximal map F(z) with parameters h, k, lambda_param, y
-    
+    This function filters with the kernel and then subsamples by decimation_rate.
     Args:
-        input_image (np.array): 2D input image
-        filter_psf (np.array): 2D filter with odd width and height 
-        subsampling_rate (integer): 
-        lambda_param (scalar): lambda_param = (sigma_y^2/sigma_p^2)
-        measured_image (np.array): 2D measured image:
+        image:
+        kernel:
+        decimation_rate:
 
     Returns:
 
     """
-    rows_in, cols_in = measured_image.shape
-    rows  = np.dot(rows_in, subsampling_rate)
-    cols  = np.dot(cols_in, subsampling_rate)
+    image = filter_2D_jax(image, kernel)[::decimation_rate, ::decimation_rate]
+    return image
 
-    G,Gt = defGGt(filter_psf, subsampling_rate)
-    GGt = construct_GGt(filter_psf, subsampling_rate, rows, cols)
-    Gty = Gt(measured_image)
-    #v   = cv2.resize(measured_image, (rows_in*subsampling_rate, cols_in*subsampling_rate))
-    #x   = v
 
-    # Note: input_image = v-u in the PnP ADMM
-    # solve the closed form:
-    rhs = Gty + np.dot(lambda_param, input_image)
-    x = (rhs - Gt(np.fft.ifft2(np.fft.fft2(G(rhs)) / (GGt + lambda_param)))) / lambda_param
+def apply_Gt(image, kernel, decimation_rate):
+    """
+    This function upsamples by decimation_rate and then filters with time-reversed kernel.
+    Args:
+        image:
+        kernel:
+        decimation_rate:
 
-    return x
+    Returns:
+        image:
+    """
+    # Upsample image
+    upsampled_image = upsample_image_jax(image, decimation_rate)
+
+    # Filter with flipped kernel
+    flipped_kernel = flip_array(kernel)
+    output_image = filter_2D_jax(upsampled_image, flipped_kernel)
+    return output_image
+
+def pad_and_shift_kernel(kernel, image_shape):
+    """
+    Pad a small MxM kernel to the size of a given image and circularly shift
+    it so that the center of the kernel moves to the (0,0) position.
+
+    Args:
+    kernel (np.ndarray): The input MxM kernel (M should be odd).
+    image_shape (tuple): The shape of the large 2D image (height, width).
+
+    Returns:
+    np.ndarray: A padded and shifted kernel of the same size as the image.
+    """
+    M = kernel.shape[0]  # Assume kernel is square and M = 2P + 1
+    P = (M - 1) // 2      # Calculate P based on M
+
+    # Create an array of zeros with the same shape as the image
+    padded_kernel = np.zeros(image_shape)
+
+    # Calculate the indices where the kernel should be placed
+    center = P  # Since kernel is MxM and M=2P+1, center is at P
+
+    # Place the kernel into the padded array (centered in the middle)
+    padded_kernel[:M, :M] = kernel
+
+    # Perform circular shift so that the center of the kernel goes to (0,0)
+    padded_kernel = np.roll(padded_kernel, -center, axis=0)
+    padded_kernel = np.roll(padded_kernel, -center, axis=1)
+
+    return padded_kernel
+

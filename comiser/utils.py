@@ -27,6 +27,42 @@ def display_image(data, title='2D Image', cmap='gray', colorbar=True):
     plt.show()
 
 
+def display_images(img1, img2, label1='Image 1', label2='Image 2'):
+    """
+    Display two grayscale images side by side with optional labels and consistent scaling.
+
+    Args:
+    img1 (jnp.ndarray): The first image represented as a JAX array.
+    img2 (jnp.ndarray): The second image represented as a JAX array.
+    label1 (str): Label for the first image.
+    label2 (str): Label for the second image.
+    """
+    # Convert JAX arrays to NumPy arrays for display
+    img1_np = np.array(img1)
+    img2_np = np.array(img2)
+
+    # Determine the global min and max values for consistent scaling across both images
+    vmin = min(img1_np.min(), img2_np.min())
+    vmax = max(img1_np.max(), img2_np.max())
+
+    # Create a figure with 2 subplots
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+    # Display first image
+    axes[0].imshow(img1_np, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[0].axis('off')  # Turn off axis numbers and ticks
+    axes[0].set_title(label1)
+
+    # Display second image
+    axes[1].imshow(img2_np, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[1].axis('off')
+    axes[1].set_title(label2)
+
+    plt.tight_layout()
+    plt.show()
+
+
+
 def read_png(file_path):
     """
     Reads a PNG image from a specified file path, converts it to a normalized NumPy array.
@@ -51,13 +87,13 @@ def read_png(file_path):
         return None
 
 
-def resize_float_array_using_pil(arr, new_shape):
+def resize_image(arr, new_shape):
     """
     Resize a 2D floating-point array (interpreted as an image) to new dimensions (N, M) using Pillow.
     The array is expected to be normalized [0, 1] for floating-point inputs.
 
     Args:
-    arr (np.ndarray): Input 2D floating-point array (image data).
+    image (np.ndarray): Input 2D floating-point array (image data).
     new_shape (tuple): New width and height as a tuple (M, N).
 
     Returns:
