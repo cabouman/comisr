@@ -6,6 +6,65 @@ import gc
 import jax
 import jax.numpy as jnp
 
+import comiser.utils as cu
+
+
+
+def proximal_map_numerically_stable(prox_input, measured_image, kernel, decimation_rate, lambda_param ):
+    """
+    Compute the proximal map funtion
+    Returns:
+    """
+    # Compute temporary image denoted by b in notes
+    epsilon_image = measured_image - apply_G(prox_input, kernel, decimation_rate)
+
+    # Compute Wiener filter
+    wiener_psf = gen_wiener_filter_psf(kernel, decimation_rate, lambda_param, measured_image.shape)
+
+    # This is a lot of computation, but hopefully JAX can handle it.
+    # In the future, we can window the wiener_psf, but that will require the choice of a windowing function.
+    wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf)
+
+    # Compute change in prox output
+    delta_output = (lambda_param ** 2) * apply_Gt(wiener_filtered_image, kernel, decimation_rate)
+    print(f'delta_output max absolute value: {jnp.max(jnp.abs(delta_output))}')
+
+    # Debug
+    cu.display_image(epsilon_image, title='epsilon_image')
+
+    # Compute the prox output
+    prox_output_image = delta_output + prox_input
+    return prox_output_image
+
+
+def gen_wiener_filter_psf(kernel, decimation_rate, lambda_param , shape):
+    """
+    Compute the proximal map funtion
+    Returns:
+    """
+    # Generate the special filter kernel that will be needed.
+    htilde0 = get_htilde0(kernel, decimation_rate)
+
+    # Pad and shift the kernel so its FFT will be real valued.
+    htilde0_padded = pad_and_shift_kernel(htilde0, shape)
+
+    # Compute the transfer function associated
+    transfer_function = np.fft.fft2(htilde0_padded) /( np.fft.fft2(htilde0_padded) + (lambda_param ** 2) )
+    real_transfer_function = transfer_function.real
+
+    # The transfer function should be real valued, so check that this is true.
+    fractional_error = jnp.sum(jnp.square(transfer_function.imag))/jnp.sum(jnp.square(transfer_function.real))
+    if fractional_error < 1e-6:
+        transfer_function = transfer_function.real
+    else:
+        raise ValueError("The transfer function is not real. Fractional error = {fractional_error}.")
+
+    # Calculate Wiener filtered signal
+    #wiener_psf = np.fft.ifftshift(np.fft.ifft2(transfer_function)).real
+    wiener_psf = np.fft.ifft2(transfer_function).real
+
+    return wiener_psf
+
 
 def proximal_map(prox_input, measured_image, kernel, decimation_rate, lambda_param ):
     """
@@ -23,7 +82,7 @@ def proximal_map(prox_input, measured_image, kernel, decimation_rate, lambda_par
     # Pad and shift the kernel so its FFT will be real valued.
     htilde0_padded = pad_and_shift_kernel(htilde0, measured_image.shape)
 
-    # Compute the transfer functino associated
+    # Compute the transfer function associated
     transfer_function = 1.0 /( np.fft.fft2(htilde0_padded) + (lambda_param ** 2) )
     real_transfer_function = transfer_function.real
 
