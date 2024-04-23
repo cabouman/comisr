@@ -12,8 +12,8 @@ def image_align(img1, img2):
     #img2_color = cv2.imread("ref.jpg") # Reference image. 
 
     # Convert to grayscale. 
-    #img1 = cv2.cvtColor(img1_color, cv2.COLOR_BGR2GRAY) 
-    #img2 = cv2.cvtColor(img2_color, cv2.COLOR_BGR2GRAY) 
+    #image1 = cv2.cvtColor(img1_color, cv2.COLOR_BGR2GRAY)
+    #image2 = cv2.cvtColor(img2_color, cv2.COLOR_BGR2GRAY)
     height, width = img2.shape 
 
     # Create ORB detector with 5000 features. 

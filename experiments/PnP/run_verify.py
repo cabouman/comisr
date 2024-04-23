@@ -50,7 +50,7 @@ cols  = np.dot(cols_in,K)
 
 #x = np.zeros((rows_in*subsampling_rate, cols_in*subsampling_rate), dtype=np.float64)
 x = cv2.imread('OrigImage.png', cv2.IMREAD_GRAYSCALE)
-#x = cv2.imread("../data/output/proximal_100.png", cv2.IMREAD_GRAYSCALE)
+#x = cv2.imread("../image/output/proximal_100.png", cv2.IMREAD_GRAYSCALE)
 # Check if the image was successfully read
 if x is not None:
     # Convert image to double precision
@@ -63,13 +63,13 @@ for iter in range(100):
     out_a = proximal_map.proximal_map_F(x,h,K,1,y)
     
     if iter % 1 == 0:
-        # Convert the denoised image to uint8 if it's of a different data type
+        # Convert the denoised image to uint8 if it's of a different image type
         out_uint8 = (out_a*255).astype(np.uint8)
         diff_uint8 = ((out_a-x)*255).astype(np.uint8)
 
         # Write the denoised image to a file
-        output_filename = ('../data/verify/proximal_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
-        diff_filename = ('../data/verify/diff_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
+        output_filename = ('../image/verify/proximal_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
+        diff_filename = ('../image/verify/diff_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
         #output_filename = ('proximal_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
 
         cv2.imwrite(output_filename, out_uint8)

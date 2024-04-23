@@ -30,7 +30,7 @@ print('Image Shape:', m, n)
 img1 = np.zeros(shape=(frames_number,600,1080), dtype=img.dtype)
 img_drizzed = np.zeros(shape=(frames_number,600,1080), dtype=img.dtype)
 
-#img1 = np.zeros(shape=(frames_number,180,300), dtype=img.dtype)
+#image1 = np.zeros(shape=(frames_number,180,300), dtype=img.dtype)
 #img_drizzed = np.zeros(shape=(frames_number,180,300), dtype=img.dtype)
 
 
@@ -51,22 +51,22 @@ frame_count = 0
 for x_shift in shift_list:
     for y_shift in shift_list:
             # print("Frame, Fixed x_shift and y_shift: ", frame_count, x_shift, y_shift)
-            #img1[frame_count] = image_processing.crop_image_fixed(img, offset_max = Fraction, offset_x = x_shift*Fraction, offset_y = y_shift*Fraction)
-            img1[frame_count] = image_processing.crop_image_fixed(img, offset_max = Fraction, offset_x = x_shift*1, offset_y = y_shift*1)
-            cv2.imwrite('./output/img1_cropped_fix_' + str(frame_count) + '_.png', img1[frame_count])
+            #image1[frame_count] = image_processing.crop_image_fixed(img, offset_max = Fraction, offset_x = x_shift*Fraction, offset_y = y_shift*Fraction)
+            image1[frame_count] = image_processing.crop_image_fixed(img, offset_max = Fraction, offset_x = x_shift*1, offset_y = y_shift*1)
+            cv2.imwrite('./output/img1_cropped_fix_' + str(frame_count) + '_.png', image1[frame_count])
             frame_count = frame_count + 1  """
 
 
 [width, height] = img1[0].shape
 print('cropped image size:', width,height)
 
-#cv2.imshow("cropped", img1)
+#cv2.imshow("cropped", image1)
 #cv2.waitKey(0)
 
 """ # Down sample input image - no longer used. Use opencv libraries
-# pix_img1 = img1.load()
-#img1_down = image_processing.down_sample(img1, f=2)
-#img2_down = image_processing.down_sample(img2, f=2)
+# pix_img1 = image1.load()
+#img1_down = image_processing.down_sample(image1, f=2)
+#img2_down = image_processing.down_sample(image2, f=2)
 
 #cv2.imshow("down sampled image 1", img1_down)
 #cv2.imshow("down sampled image 2", img2_down)

@@ -3,9 +3,9 @@ import cv2
 import proximal_map
 K = 4
 
-# Prepare the blurred data 
+# Prepare the blurred image
 # Read the high-resolution image
-z = cv2.imread('../data/input/OrigImage.png', cv2.IMREAD_GRAYSCALE)
+z = cv2.imread('../image/input/OrigImage.png', cv2.IMREAD_GRAYSCALE)
 cv2.imwrite('OrigImage.png', z)
 
 
@@ -32,7 +32,7 @@ y = cv2.resize(z, (z.shape[1]//K, z.shape[0]//K))
 # Apply the filter
 filtered_image = cv2.filter2D(y, -1, h)
 
-# Convert the denoised image to uint8 if it's of a different data type
+# Convert the denoised image to uint8 if it's of a different image type
 out_uint8 = (filtered_image*255).astype(np.uint8)
 cv2.imwrite('DownImage.png', out_uint8)
 

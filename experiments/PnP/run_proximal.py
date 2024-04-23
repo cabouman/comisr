@@ -62,13 +62,13 @@ for iter in range(100):
     out_a = proximal_map.proximal_map_F(x,h,K,1,y)
     
     if iter % 1 == 0:
-        # Convert the denoised image to uint8 if it's of a different data type
+        # Convert the denoised image to uint8 if it's of a different image type
         out_uint8 = (out_a*255).astype(np.uint8)
         diff_uint8 = ((out_a-x)*255).astype(np.uint8)
 
         # Write the denoised image to a file
-        output_filename = ('../data/output/proximal_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
-        diff_filename = ('../data/output/diff_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
+        output_filename = ('../image/output/proximal_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
+        diff_filename = ('../image/output/diff_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
         #output_filename = ('proximal_{:03d}.png'.format(iter+1))  # Adjust file extension as needed
 
         cv2.imwrite(output_filename, out_uint8)

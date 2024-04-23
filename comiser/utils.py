@@ -3,12 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def display_image(data, title='2D Image', cmap='gray', colorbar=True):
+def display_image(image, title='2D Image', cmap='gray', colorbar=True):
     """
     Displays a 2D array as an image using matplotlib.
 
     Args:
-        data (numpy array): The 2D array to be displayed as an image.
+        image (numpy array): The 2D array to be displayed as an image.
         title (str, optional): Title of the image. Defaults to '2D Image'.
         cmap (str, optional): Colormap used to display the image. Defaults to 'gray'.
         colorbar (bool, optional): Flag to indicate whether to display a colorbar. Defaults to True.
@@ -16,8 +16,12 @@ def display_image(data, title='2D Image', cmap='gray', colorbar=True):
     Returns:
         None
     """
+    # Determine the global min and max values for consistent scaling across both images
+    vmin = image.min()
+    vmax = image.max()
+
     fig, ax = plt.subplots()
-    img = ax.imshow(data, cmap=cmap)
+    img = ax.imshow(image, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
     ax.set_title(title)
     ax.axis('off')  # Turn off axis numbering and ticks
 
@@ -27,37 +31,37 @@ def display_image(data, title='2D Image', cmap='gray', colorbar=True):
     plt.show()
 
 
-def display_images(img1, img2, label1='Image 1', label2='Image 2', colorbar=True):
+def display_images(image1, image2, title1='Image 1', title2='Image 2', colorbar=True):
     """
     Display two grayscale images side by side with optional labels, consistent scaling, and optional colorbar.
 
     Args:
-    img1 (np.ndarray): The first image represented as a NumPy array.
-    img2 (np.ndarray): The second image represented as a NumPy array.
-    label1 (str): Label for the first image.
-    label2 (str): Label for the second image.
+    image1 (np.ndarray): The first image represented as a NumPy array.
+    image2 (np.ndarray): The second image represented as a NumPy array.
+    title1 (str): Label for the first image.
+    title2 (str): Label for the second image.
     colorbar (bool): If True, display colorbar next to each image.
     """
     # Determine the global min and max values for consistent scaling across both images
-    vmin = min(img1.min(), img2.min())
-    vmax = max(img1.max(), img2.max())
+    vmin = min(image1.min(), image2.min())
+    vmax = max(image1.max(), image2.max())
 
     # Create a figure with 2 subplots
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     # Display first image
-    im1 = axes[0].imshow(img1, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    im1 = axes[0].imshow(image1, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
     axes[0].axis('off')  # Turn off axis numbers and ticks
-    axes[0].set_title(label1)
+    axes[0].set_title(title1)
 
     # Optionally add a colorbar
     if colorbar:
         fig.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)
 
     # Display second image
-    im2 = axes[1].imshow(img2, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    im2 = axes[1].imshow(image2, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
     axes[1].axis('off')
-    axes[1].set_title(label2)
+    axes[1].set_title(title2)
 
     # Optionally add a colorbar
     if colorbar:
@@ -97,7 +101,7 @@ def resize_image(arr, new_shape):
     The array is expected to be normalized [0, 1] for floating-point inputs.
 
     Args:
-    image (np.ndarray): Input 2D floating-point array (image data).
+    image (np.ndarray): Input 2D floating-point array (image image).
     high_res_shape (tuple): New width and height as a tuple (M, N).
 
     Returns:

@@ -5,9 +5,9 @@ import approximal_map
 K = 4
 
 
-""" # Prepare the blurred data 
+""" # Prepare the blurred image 
 # Read the high-resolution image
-input_image = cv2.imread('../../data/high_resolution_frame.png', cv2.IMREAD_GRAYSCALE)
+input_image = cv2.imread('../../image/high_resolution_frame.png', cv2.IMREAD_GRAYSCALE)
 cv2.imwrite('OrigImage.png', input_image)
 
 # Convert image to double precision
@@ -47,7 +47,7 @@ xtilde = cv2.resize(y, (rows_in*K, cols_in*K))
 out_a = approximal_map.approximal_map_F(h,K,1,y,xtilde)
 
 # Write the restored image
-# Convert the denoised image to uint8 if it's of a different data type
+# Convert the denoised image to uint8 if it's of a different image type
 out_uint8 = (out_a*255).astype(np.uint8)
 
 # Write the denoised image to a file
