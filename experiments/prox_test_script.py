@@ -53,7 +53,7 @@ if __name__ == "__main__":
     print(f'gt_image.shape: {gt_image.shape}')
     print(f'prox_image.shape: {prox_image.shape}')
 
-    NumIterations = 100
+    NumIterations = 10
     for i in range(NumIterations):
         prox_image = pnp.proximal_map(prox_image, measured_image, kernel, decimation_rate, lambda_param )
 

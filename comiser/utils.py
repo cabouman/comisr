@@ -27,40 +27,44 @@ def display_image(data, title='2D Image', cmap='gray', colorbar=True):
     plt.show()
 
 
-def display_images(img1, img2, label1='Image 1', label2='Image 2'):
+def display_images(img1, img2, label1='Image 1', label2='Image 2', colorbar=True):
     """
-    Display two grayscale images side by side with optional labels and consistent scaling.
+    Display two grayscale images side by side with optional labels, consistent scaling, and optional colorbar.
 
     Args:
-    img1 (jnp.ndarray): The first image represented as a JAX array.
-    img2 (jnp.ndarray): The second image represented as a JAX array.
+    img1 (np.ndarray): The first image represented as a NumPy array.
+    img2 (np.ndarray): The second image represented as a NumPy array.
     label1 (str): Label for the first image.
     label2 (str): Label for the second image.
+    colorbar (bool): If True, display colorbar next to each image.
     """
-    # Convert JAX arrays to NumPy arrays for display
-    img1_np = np.array(img1)
-    img2_np = np.array(img2)
-
     # Determine the global min and max values for consistent scaling across both images
-    vmin = min(img1_np.min(), img2_np.min())
-    vmax = max(img1_np.max(), img2_np.max())
+    vmin = min(img1.min(), img2.min())
+    vmax = max(img1.max(), img2.max())
 
     # Create a figure with 2 subplots
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     # Display first image
-    axes[0].imshow(img1_np, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    im1 = axes[0].imshow(img1, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
     axes[0].axis('off')  # Turn off axis numbers and ticks
     axes[0].set_title(label1)
 
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)
+
     # Display second image
-    axes[1].imshow(img2_np, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    im2 = axes[1].imshow(img2, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
     axes[1].axis('off')
     axes[1].set_title(label2)
 
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)
+
     plt.tight_layout()
     plt.show()
-
 
 
 def read_png(file_path):
