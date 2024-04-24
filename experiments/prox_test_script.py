@@ -6,6 +6,14 @@ import jax.numpy as jnp
 import comiser.utils as cu
 import comiser.pnp_utils as pnp
 
+# Use double precision floats
+jax.config.update("jax_enable_x64", True)
+
+def get_nrmse_convergence_error(measured_image, prox_image, kernel, decimation_rate):
+    error_image = measured_image - pnp.apply_G(prox_image, kernel, decimation_rate)
+    nrmse = jnp.sqrt(jnp.sum(error_image**2) / jnp.sum(measured_image**2))
+    return nrmse
+
 
 """
 This is a script to test the proximal map functions  
@@ -62,12 +70,11 @@ if __name__ == "__main__":
 
     NumIterations = 100
     for i in range(NumIterations):
-        prox_image = pnp.proximal_map_numerically_stable(prox_image, measured_image, kernel, decimation_rate, lambda_param )
+        prox_image = pnp.proximal_map_numerically_stable(prox_image, measured_image, kernel, decimation_rate, lambda_param)
 
-    # Test that iterated prox has reached the correct solution
-    error_image = measured_image - pnp.apply_G(prox_image, kernel, decimation_rate)
-    nrmse = jnp.sqrt(jnp.sum(error_image ** 2)/jnp.sum(measured_image ** 2))
-    print(f'RMSE = {nrmse}')
+        # Test that iterated prox is converging to the correct solution
+        nrmse = get_nrmse_convergence_error(measured_image, prox_image, kernel, decimation_rate)
+        print(f'RMSE = {nrmse}')
 
     # Display ground truth and prox output
     cu.display_images(measured_image, prox_image, title1='Measured Image', title2=f'{NumIterations} Iterations of Proximal Map')
