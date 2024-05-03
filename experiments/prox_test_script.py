@@ -3,8 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
+
+# add parent path to import functions in the comiser folder 
+import sys
+sys.path.append('..')  
 import comiser.utils as cu
 import comiser.pnp_utils as pnp
+import comiser.img_utils as cimgu
 
 # Use double precision floats
 jax.config.update("jax_enable_x64", True)
