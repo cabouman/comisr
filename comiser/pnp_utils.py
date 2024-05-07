@@ -5,101 +5,10 @@ import warnings
 import gc
 import jax
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
+
 
 import comiser.utils as cu
-
-def proximal_map_modified(prox_input_image, measured_image, kernel, decimation_rate, lambda_param ):
-
-    """
-    Add hamming window to the wiener
-    use modified wiener psf generator 
-
-    Compute the proximal map funtion
-    def 𝐹(𝑧;𝑦,ℎ,𝐾,𝜆):
-        𝜖←(𝑦−𝐺𝑧)
-        𝑔_0←wiener_psf(ℎ)∙hamming window
-        𝑑←𝜖 −𝑔_0∗𝜖
-        𝑥←𝜆^(−2) 𝐺^𝑡 𝑑+𝑧
-        Return 𝑥
-
-    Returns: proximal map
-    
-    """
-    # Compute temporary image denoted by b in notes
-    epsilon_image = measured_image - apply_G(prox_input_image, kernel, decimation_rate)
-
-    # Compute a desired padding for the filter
-    desired_shape = get_odd_filter_shape(epsilon_image.shape, K=1)
-
-    # Compute and display Wiener filter psf
-    wiener_psf = gen_wiener_filter_psf_modified(kernel, decimation_rate, lambda_param, desired_shape)
-
-    # Debug
-    # print(f'wiener_psf.shape: {wiener_psf.shape}')
-    #cu.display_image(wiener_psf, title='Wiener PSF')
-
-    # Add hamming window to the filter
-    hamming_window = np.hamming(desired_shape[0])  # You can also use np.hanning or np.blackman
-    hamming_window_2d = np.outer(hamming_window, hamming_window)  # make it 2D
-
-    # Apply the window to the filter
-    wiener_psf_window = wiener_psf * hamming_window_2d
-
-    # This is a lot of computation, but hopefully JAX can handle it.
-    # In the future, we can window the wiener_psf, but that will require the choice of a windowing function.
-    wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf_window)
-
-    # Modification: May 2, 2024
-    wiener_filtered_image = epsilon_image - wiener_filtered_image
-
-    # Compute change in prox output
-    upsampled_image = apply_Gt(wiener_filtered_image, kernel, decimation_rate)
-
-    # Compute the prox output, modified May 2, 2024
-    # prox_output_image = upsampled_image + prox_input_image
-    prox_output_image = (lambda_param**(-2)) * upsampled_image + prox_input_image
-
-    return prox_output_image
-
-def gen_wiener_filter_psf_modified(kernel, decimation_rate, lambda_param , shape):
-    """
-    Generate the wiener filter psf
-    def wiener_psf(ℎ, 𝑘,𝜆):
-        ℎ ̃(𝑚,𝑛)←ℎ(𝑚,𝑛)∗ℎ(−𝑚,−𝑛)
-        ℎ ̃_0←ℎ ̃_(𝐾𝑚,𝐾𝑛)
-        𝑔_0←ℱ^(−1) {ℱ{ℎ ̃_0 }/(ℱ{ℎ ̃_0 }+𝜆^2 )}  
-        Return 𝑔_0
-
-    Returns: wiener filter psf generated using given kernel and a size of desired shape
-    """
-    # Ensure that shape is even
-    shape = make_dimensions_odd(shape)
-    even_shape = increment_dimensions(shape)
-
-    # Generate the special filter kernel that will be needed.
-    htilde0 = get_htilde0(kernel, decimation_rate)
-
-    # Pad and shift the kernel so its FFT will be real valued.
-    htilde0_padded = pad_and_shift_kernel(htilde0, even_shape)
-
-    # Compute the transfer function associated 
-    FFT_htilde0_padded = jnp.fft.fft2(htilde0_padded)
-    transfer_function = FFT_htilde0_padded /(FFT_htilde0_padded + (lambda_param ** 2))
-
-    # The transfer function should be real valued, so check that this is true.
-    fractional_error = jnp.sum(jnp.square(transfer_function.imag))/jnp.sum(jnp.square(transfer_function.real))
-    if fractional_error < 1e-5:
-        transfer_function = transfer_function.real
-    else:
-        raise ValueError(f"The transfer function is not real. Fractional error = {fractional_error}.")
-
-    # Calculate Wiener filtered signal
-    wiener_psf = jnp.fft.ifftshift(jnp.fft.ifft2(transfer_function)).real
-
-    # Remove the first row and column to center the psf
-    wiener_psf = wiener_psf[1:, 1:]
-
-    return wiener_psf
 
 def proximal_map_numerically_stable(prox_input_image, measured_image, kernel, decimation_rate, lambda_param ):
     """
@@ -119,9 +28,18 @@ def proximal_map_numerically_stable(prox_input_image, measured_image, kernel, de
     print(f'wiener_psf.shape: {wiener_psf.shape}')
     #cu.display_image(wiener_psf, title='Wiener PSF')
 
+    # Add hamming window to the filter
+    hamming_window = np.hamming(desired_shape[0])  # You can also use np.hanning or np.blackman
+    hamming_window_2d = np.outer(hamming_window, hamming_window)  # make it 2D
+
+    # Apply hamming window to the wiener filter 
+    wiener_psf_window = wiener_psf * hamming_window_2d
+
     # This is a lot of computation, but hopefully JAX can handle it.
+    #wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf)
+
     # In the future, we can window the wiener_psf, but that will require the choice of a windowing function.
-    wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf)
+    wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf_window)
 
     # Compute change in prox output
     upsampled_image = apply_Gt(wiener_filtered_image, kernel, decimation_rate)
@@ -390,3 +308,36 @@ def increment_dimensions(shape):
     """
     incremented_shape = tuple(dim + 1 for dim in shape)
     return incremented_shape
+
+
+def pad_kernel(kernel, image_shape):
+    """
+    Pad a small MxM kernel to the size of a given image
+    Args:
+    kernel (np.ndarray): The input MxM kernel (M should be odd).
+    image_shape (tuple): The shape of the large 2D image (height, width).
+
+    Returns:
+    np.ndarray: A padded and shifted kernel of the same size as the image.
+    """
+    M = kernel.shape[0]  # Assume kernel is square and M = 2P + 1
+    P = (M - 1) // 2      # Calculate P based on M
+
+    # Create an array of zeros with the same shape as the image
+    padded_kernel = np.zeros(image_shape)
+
+    # Calculate the indices where the kernel should be placed
+    center = image_shape[0]//2 - P  # Since kernel is MxM and M=2P+1, center is at P
+
+    # Place the kernel into the padded array (centered in the middle)
+    padded_kernel[:M, :M] = kernel
+    #cu.display_image(padded_kernel, title=f'place the kernel, P = {P}')
+
+
+    # Perform circular shift so that the center of the kernel goes to (center of image)
+    padded_kernel = np.roll(padded_kernel, center, axis=0)
+    padded_kernel = np.roll(padded_kernel, center, axis=1)
+    #cu.display_image(padded_kernel, title=f'perform circular shift, center = {center}')
+
+
+    return padded_kernel
