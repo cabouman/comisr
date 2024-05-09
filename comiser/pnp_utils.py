@@ -6,13 +6,10 @@ import gc
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
-
-
 import comiser.utils as cu
 
 
-
-def admm_with_proximal(y, kernel, decimation_rate, lambda_param, rho, mu, max_iter=1000, tol=1e-4):
+def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=1000, tol=1e-4):
     """
     ADMM for solving:
     minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
@@ -29,17 +26,16 @@ def admm_with_proximal(y, kernel, decimation_rate, lambda_param, rho, mu, max_it
         Tolerance for the stopping criterion.
     """
     M, N = y.shape
-
     m = M * decimation_rate
     n = N * decimation_rate
 
+    # Initialize 
     u = np.zeros((m,n))
     v = np.zeros((m,n))
-    
 
     for iteration in range(max_iter):
 
-        # x-update (solving the quadratic subproblem)
+        # inverse step - priximal map
         x_tilde = v - u 
         x_old = x_tilde.copy()
         x = proximal_map_numerically_stable(x_tilde, y, kernel, decimation_rate, lambda_param)
@@ -51,15 +47,12 @@ def admm_with_proximal(y, kernel, decimation_rate, lambda_param, rho, mu, max_it
         #debug
         #cu.display_images(y, x, title1='Measured Image', title2=f'{iteration} Iterations of Proximal Map')
 
-
-        # z-update (applying the proximal map for the L1 norm)
+        # denoising step
         v_tilde = x + u
-        #v = soft_thresholding(v_tilde, mu / rho)
 
         # apply linear filter
         v = filter_2D_jax(v_tilde, kernel)
-        v = x + u
-
+        #v = x + u
             
         # u-update (dual variable update)
         u += (x-v)
@@ -68,7 +61,6 @@ def admm_with_proximal(y, kernel, decimation_rate, lambda_param, rho, mu, max_it
         if np.linalg.norm(x - x_old) < tol:
             print(f"Convergence reached after {iteration + 1} iterations.")
             break
-
     return x
 
 
