@@ -10,6 +10,68 @@ import matplotlib.pyplot as plt
 
 import comiser.utils as cu
 
+
+
+def admm_with_proximal(y, kernel, decimation_rate, lambda_param, rho, mu, max_iter=1000, tol=1e-4):
+    """
+    ADMM for solving:
+    minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
+    f(x) = |y-Gx|^2
+    
+    Parameters:
+    x: prox_input_image
+    y: measured_image
+    rho : float
+        Penalty parameter for the ADMM.
+    max_iter : int
+        Maximum number of iterations.
+    tol : float
+        Tolerance for the stopping criterion.
+    """
+    M, N = y.shape
+
+    m = M * decimation_rate
+    n = N * decimation_rate
+
+    u = np.zeros((m,n))
+    v = np.zeros((m,n))
+    
+
+    for iteration in range(max_iter):
+
+        # x-update (solving the quadratic subproblem)
+        x_tilde = v - u 
+        x_old = x_tilde.copy()
+        x = proximal_map_numerically_stable(x_tilde, y, kernel, decimation_rate, lambda_param)
+
+        # Test that iterated prox is converging to the correct solution
+        nrmse1 = get_nrmse_convergence_error(y, x, kernel, decimation_rate)
+        print(f'RMSE 1 = {nrmse1}')
+
+        #debug
+        #cu.display_images(y, x, title1='Measured Image', title2=f'{iteration} Iterations of Proximal Map')
+
+
+        # z-update (applying the proximal map for the L1 norm)
+        v_tilde = x + u
+        #v = soft_thresholding(v_tilde, mu / rho)
+
+        # apply linear filter
+        v = filter_2D_jax(v_tilde, kernel)
+        v = x + u
+
+            
+        # u-update (dual variable update)
+        u += (x-v)
+        
+        # Convergence check
+        if np.linalg.norm(x - x_old) < tol:
+            print(f"Convergence reached after {iteration + 1} iterations.")
+            break
+
+    return x
+
+
 def proximal_map_numerically_stable(prox_input_image, measured_image, kernel, decimation_rate, lambda_param ):
     """
     Compute the proximal map funtion
@@ -341,3 +403,8 @@ def pad_kernel(kernel, image_shape):
 
 
     return padded_kernel
+
+def get_nrmse_convergence_error(measured_image, prox_image, kernel, decimation_rate):
+    error_image = measured_image - apply_G(prox_image, kernel, decimation_rate)
+    nrmse = jnp.sqrt(jnp.sum(error_image**2) / jnp.sum(measured_image**2))
+    return nrmse
