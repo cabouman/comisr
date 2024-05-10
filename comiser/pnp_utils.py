@@ -5,9 +5,63 @@ import warnings
 import gc
 import jax
 import jax.numpy as jnp
-
+import matplotlib.pyplot as plt
 import comiser.utils as cu
 
+
+def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=1000, tol=1e-4):
+    """
+    ADMM for solving:
+    minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
+    f(x) = |y-Gx|^2
+    
+    Parameters:
+    x: prox_input_image
+    y: measured_image
+    rho : float
+        Penalty parameter for the ADMM.
+    max_iter : int
+        Maximum number of iterations.
+    tol : float
+        Tolerance for the stopping criterion.
+    """
+    M, N = y.shape
+    m = M * decimation_rate
+    n = N * decimation_rate
+
+    # Initialize 
+    u = np.zeros((m,n))
+    v = np.zeros((m,n))
+
+    for iteration in range(max_iter):
+
+        # inverse step - priximal map
+        x_tilde = v - u 
+        x_old = x_tilde.copy()
+        x = proximal_map_numerically_stable(x_tilde, y, kernel, decimation_rate, lambda_param)
+
+        # Test that iterated prox is converging to the correct solution
+        nrmse1 = get_nrmse_convergence_error(y, x, kernel, decimation_rate)
+        print(f'RMSE 1 = {nrmse1}')
+
+        #debug
+        #cu.display_images(y, x, title1='Measured Image', title2=f'{iteration} Iterations of Proximal Map')
+
+        # denoising step
+        v_tilde = x + u
+
+        # apply linear filter
+        v = filter_2D_jax(v_tilde, kernel)
+        #v = x + u
+            
+        # u-update (dual variable update)
+        u += (x-v)
+        
+        # Convergence check
+        if np.linalg.norm(x - x_old) < tol:
+            print(f"Convergence reached after {iteration + 1} iterations.")
+            break
+    return x
 
 
 def proximal_map_numerically_stable(prox_input_image, measured_image, kernel, decimation_rate, lambda_param ):
@@ -28,9 +82,18 @@ def proximal_map_numerically_stable(prox_input_image, measured_image, kernel, de
     print(f'wiener_psf.shape: {wiener_psf.shape}')
     #cu.display_image(wiener_psf, title='Wiener PSF')
 
+    # Add hamming window to the filter
+    hamming_window = np.hamming(desired_shape[0])  # You can also use np.hanning or np.blackman
+    hamming_window_2d = np.outer(hamming_window, hamming_window)  # make it 2D
+
+    # Apply hamming window to the wiener filter 
+    wiener_psf_window = wiener_psf * hamming_window_2d
+
     # This is a lot of computation, but hopefully JAX can handle it.
+    #wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf)
+
     # In the future, we can window the wiener_psf, but that will require the choice of a windowing function.
-    wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf)
+    wiener_filtered_image = filter_2D_jax(epsilon_image, wiener_psf_window)
 
     # Compute change in prox output
     upsampled_image = apply_Gt(wiener_filtered_image, kernel, decimation_rate)
@@ -299,3 +362,41 @@ def increment_dimensions(shape):
     """
     incremented_shape = tuple(dim + 1 for dim in shape)
     return incremented_shape
+
+
+def pad_kernel(kernel, image_shape):
+    """
+    Pad a small MxM kernel to the size of a given image
+    Args:
+    kernel (np.ndarray): The input MxM kernel (M should be odd).
+    image_shape (tuple): The shape of the large 2D image (height, width).
+
+    Returns:
+    np.ndarray: A padded and shifted kernel of the same size as the image.
+    """
+    M = kernel.shape[0]  # Assume kernel is square and M = 2P + 1
+    P = (M - 1) // 2      # Calculate P based on M
+
+    # Create an array of zeros with the same shape as the image
+    padded_kernel = np.zeros(image_shape)
+
+    # Calculate the indices where the kernel should be placed
+    center = image_shape[0]//2 - P  # Since kernel is MxM and M=2P+1, center is at P
+
+    # Place the kernel into the padded array (centered in the middle)
+    padded_kernel[:M, :M] = kernel
+    #cu.display_image(padded_kernel, title=f'place the kernel, P = {P}')
+
+
+    # Perform circular shift so that the center of the kernel goes to (center of image)
+    padded_kernel = np.roll(padded_kernel, center, axis=0)
+    padded_kernel = np.roll(padded_kernel, center, axis=1)
+    #cu.display_image(padded_kernel, title=f'perform circular shift, center = {center}')
+
+
+    return padded_kernel
+
+def get_nrmse_convergence_error(measured_image, prox_image, kernel, decimation_rate):
+    error_image = measured_image - apply_G(prox_image, kernel, decimation_rate)
+    nrmse = jnp.sqrt(jnp.sum(error_image**2) / jnp.sum(measured_image**2))
+    return nrmse
