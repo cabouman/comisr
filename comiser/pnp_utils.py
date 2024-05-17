@@ -32,6 +32,11 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=100
     # Initialize 
     u = np.zeros((m,n))
     v = np.zeros((m,n))
+    
+    # Initialize v with first few iterations of proximal map
+    for i in range(5):
+        v = proximal_map_numerically_stable(v, y, kernel, decimation_rate, lambda_param)
+
 
     for iteration in range(max_iter):
 
@@ -51,9 +56,13 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=100
         v_tilde = x + u
 
         # apply linear filter
-        v = filter_2D_jax(v_tilde, kernel)
-        #v = x + u
-            
+        #v = x + u # Not denoiser 
+        v = filter_2D_jax(v_tilde, kernel)   
+        # v = admm.bm3d_1st_step(v_tilde) # Need debug
+        # v = admm.total_variation_denoise(noisy_image=v_tilde, lambda_value=0.1, num_iterations=3) # Super slow 
+        # v = admm.my_BM3D(v_tilde) # BM3D not work with M1
+
+
         # u-update (dual variable update)
         u += (x-v)
         
@@ -398,5 +407,28 @@ def pad_kernel(kernel, image_shape):
 
 def get_nrmse_convergence_error(measured_image, prox_image, kernel, decimation_rate):
     error_image = measured_image - apply_G(prox_image, kernel, decimation_rate)
-    nrmse = jnp.sqrt(jnp.sum(error_image**2) / jnp.sum(measured_image**2))
+    #nrmse = jnp.sqrt(jnp.sum(error_image**2) / jnp.sum(measured_image**2))
+    nrmse = np.linalg.norm(error_image) / np.linalg.norm(measured_image)
+    #nrmse = np.sqrt(np.sum(error_image**2) / np.sum(measured_image**2))
     return nrmse
+
+
+def shift_kernel(kernel, offset):
+    
+    #offset = kernel.shape[0] // 4
+
+    # Perform circular shift so that the center of the kernel goes to (0,0)
+    kernel = np.roll(kernel, -offset, axis=0)
+    kernel = np.roll(kernel, -offset, axis=1)
+
+    return kernel
+
+
+def mse(image_true, image_pred):
+    # Flatten images to vectors
+    true_values = image_true.flatten()
+    pred_values = image_pred.flatten()
+    # Compute mean squared error
+    mse = np.sqrt(np.mean((true_values - pred_values)**2))
+            
+    return mse
