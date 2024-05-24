@@ -49,9 +49,8 @@ if __name__ == "__main__":
     wiener_psf = pnp.gen_wiener_filter_psf(kernel, decimation_rate, lambda_param, desired_shape)
 
     # Display results
-    cu.display_image(wiener_psf, title=f'Wiener PSF lambda = {lambda_param} shape = {desired_shape[0]}')
+    # cu.display_image(wiener_psf, title=f'Wiener PSF lambda = {lambda_param} shape = {desired_shape[0]}')
     # #####################
-
 
     # #########################
     # Sanity check: Initialize with ground truth and check that it doesn't change
@@ -62,7 +61,7 @@ if __name__ == "__main__":
         prox_image = pnp.proximal_map_numerically_stable(prox_image, measured_image, kernel, decimation_rate, lambda_param )
 
     # Display ground truth and prox output
-    cu.display_images(gt_image, prox_image, title1='Ground Truth', title2='Prox Output Image')
+    #cu.display_images(gt_image, prox_image, title1='Ground Truth', title2='Prox Output Image')
 
 
     # #########################
@@ -88,7 +87,7 @@ if __name__ == "__main__":
     # Apply the ADMM
     restored_image = jnp.zeros(gt_image.shape)
     # denoiser_kernel = pnp.gen_gaussian_filter(2*P, filter_std/4)
-    sigma_denoiser = 0.1
-    denoiser_method = "BM3D"
+    sigma_denoiser = 15
+    denoiser_method = "DPIR"
     restored_image = pnp.admm_with_proximal(restored_image, measured_image, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter = NumIterations, tol=1e-5)
     cu.display_3images(gt_image, measured_image, restored_image, title1='Ground Truth', title2 = 'Measured Image', title3=f'{NumIterations} Iterations of ADMM')
