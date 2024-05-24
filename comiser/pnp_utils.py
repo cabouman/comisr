@@ -9,9 +9,10 @@ import comiser.utils as cu
 
 import matplotlib.pyplot as plt
 import comiser.utils as cu
+import bm3d
 
 
-def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=1000, tol=1e-4):
+def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, sigma_denoiser, max_iter=1000, tol=1e-4):
     """
     ADMM for solving:
     minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
@@ -39,6 +40,9 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=100
     for i in range(5):
         v = proximal_map_numerically_stable(v, y, kernel, decimation_rate, lambda_param)
 
+    # Add a moving average kernel to smooth the image
+    MA_kernel = np.ones((2,2), dtype=float) /(2**2)
+    v = jax.scipy.signal.convolve(v, MA_kernel, mode="same")
 
     for iteration in range(max_iter):
 
@@ -59,10 +63,11 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=100
 
         # apply linear filter
         #v = x + u # Not denoiser 
-        v = filter_2D_jax(v_tilde, kernel)   
+        # v = filter_2D_jax(v_tilde, denoiser_kernel)   
         # v = admm.bm3d_1st_step(v_tilde) # Need debug
         # v = admm.total_variation_denoise(noisy_image=v_tilde, lambda_value=0.1, num_iterations=3) # Super slow 
         # v = admm.my_BM3D(v_tilde) # BM3D not work with M1
+        v = bm3d.bm3d(v_tilde, sigma_psd=sigma_denoiser, stage_arg=bm3d.BM3DStages.ALL_STAGES)
 
 
         # u-update (dual variable update)
