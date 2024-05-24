@@ -9,10 +9,30 @@ import comiser.utils as cu
 
 import matplotlib.pyplot as plt
 import comiser.utils as cu
-import bm3d
+#import bm3d
 
+def wrapper_BM3D(image,sigma_denoiser):
+    import comiser.denoiser_bm3d as denoiser_bm3d
+    image_denoised = denoiser_bm3d.my_BM3D(image, sigma=sigma_denoiser)
+    return image_denoised
 
-def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, sigma_denoiser, max_iter=1000, tol=1e-4):
+def wrapper_NLM(image, sigma_denoiser):
+    import comiser.denoiser_LF as denoiser_LF
+    image_denoised = denoiser_LF.NLM(image,sigma=sigma_denoiser)
+    return image_denoised
+
+def get_denoiser(method):
+    denoisers = {
+        'BM3D': wrapper_BM3D,
+        'NLM': wrapper_NLM
+    }
+
+    if method in denoisers:
+        return denoisers[method]
+    else:
+        raise ValueError('unknown')
+
+def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter=1000, tol=1e-4):
     """
     ADMM for solving:
     minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
@@ -61,14 +81,8 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, sigma_denois
         # denoising step
         v_tilde = x + u
 
-        # apply linear filter
-        #v = x + u # Not denoiser 
-        # v = filter_2D_jax(v_tilde, denoiser_kernel)   
-        # v = admm.bm3d_1st_step(v_tilde) # Need debug
-        # v = admm.total_variation_denoise(noisy_image=v_tilde, lambda_value=0.1, num_iterations=3) # Super slow 
-        # v = admm.my_BM3D(v_tilde) # BM3D not work with M1
-        v = bm3d.bm3d(v_tilde, sigma_psd=sigma_denoiser, stage_arg=bm3d.BM3DStages.ALL_STAGES)
-
+        denoiser_funtion = get_denoiser(denoiser_method)
+        v = denoiser_funtion(v_tilde, sigma_denoiser)
 
         # u-update (dual variable update)
         u += (x-v)

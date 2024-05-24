@@ -89,5 +89,6 @@ if __name__ == "__main__":
     restored_image = jnp.zeros(gt_image.shape)
     # denoiser_kernel = pnp.gen_gaussian_filter(2*P, filter_std/4)
     sigma_denoiser = 0.1
-    restored_image = pnp.admm_with_proximal(restored_image, measured_image, kernel, decimation_rate, lambda_param, sigma_denoiser, max_iter = NumIterations, tol=1e-5)
+    denoiser_method = "BM3D"
+    restored_image = pnp.admm_with_proximal(restored_image, measured_image, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter = NumIterations, tol=1e-5)
     cu.display_3images(gt_image, measured_image, restored_image, title1='Ground Truth', title2 = 'Measured Image', title3=f'{NumIterations} Iterations of ADMM')

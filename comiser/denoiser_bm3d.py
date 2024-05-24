@@ -1,4 +1,4 @@
-from bm3d import bm3d
+import bm3d
 from skimage import img_as_float
 
 # Denoise the image using BM4D
