@@ -21,10 +21,16 @@ def wrapper_NLM(image, sigma_denoiser):
     image_denoised = denoiser_LF.NLM(image,sigma=sigma_denoiser)
     return image_denoised
 
+def wrapper_DPIR(image, sigma_denoiser): 
+    import denoisers.DPIR.denoiser_DPIR as denoiser_DPIR
+    image_denoised = denoiser_DPIR.my_Denoiser(image,sigma_denoiser)
+    return image_denoised
+
 def get_denoiser(method):
     denoisers = {
         'BM3D': wrapper_BM3D,
-        'NLM': wrapper_NLM
+        'NLM': wrapper_NLM,
+        'DPIR': wrapper_DPIR
     }
 
     if method in denoisers:
