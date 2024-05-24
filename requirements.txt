@@ -1,2 +1,8 @@
+jax
 matplotlib
 numpy
+scipy
+pyyaml
+dotmap
+setuptools
+pillow

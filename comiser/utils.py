@@ -70,6 +70,115 @@ def display_images(image1, image2, title1='Image 1', title2='Image 2', colorbar=
     plt.tight_layout()
     plt.show()
 
+def display_3images(image1, image2, image3, title1='Image 1', title2='Image 2', title3='Image 3', colorbar=True):
+    """
+    Display three grayscale images side by side with optional labels, consistent scaling, and optional colorbar.
+
+    Args:
+    image1 (np.ndarray): The first image represented as a NumPy array.
+    image2 (np.ndarray): The second image represented as a NumPy array.
+    imagee (np.ndarray): The second image represented as a NumPy array.
+    title1 (str): Label for the first image.
+    title2 (str): Label for the second image.
+    title3 (str): Label for the second image.
+    colorbar (bool): If True, display colorbar next to each image.
+    """
+    # Determine the global min and max values for consistent scaling across both images
+    vmin = min(image1.min(), image2.min(), image3.min())
+    vmax = max(image1.max(), image2.max(), image3.max())
+
+    # Create a figure with 2 subplots
+    fig, axes = plt.subplots(1, 3, figsize=(12, 5))
+
+    # Display first image
+    im1 = axes[0].imshow(image1, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[0].axis('off')  # Turn off axis numbers and ticks
+    axes[0].set_title(title1)
+
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)
+
+    # Display second image
+    im2 = axes[1].imshow(image2, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[1].axis('off')
+    axes[1].set_title(title2)
+
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)
+
+    # Display third image
+    im3 = axes[2].imshow(image3, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[2].axis('off')
+    axes[2].set_title(title3)
+
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im3, ax=axes[2], fraction=0.046, pad=0.04)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def display_3images_pixelval(image1, image2, image3, title1='Image 1', title2='Image 2', title3='Image 3', colorbar=True):
+    """
+    Display three grayscale images side by side with optional labels, consistent scaling, and optional colorbar.
+    The third image is the difference image of image1 and image2, also display third image's pixel value
+
+    Args:
+    image1 (np.ndarray): The first image represented as a NumPy array.
+    image2 (np.ndarray): The second image represented as a NumPy array.
+    imagee (np.ndarray): The second image represented as a NumPy array.
+    title1 (str): Label for the first image.
+    title2 (str): Label for the second image.
+    title3 (str): Label for the second image.
+    colorbar (bool): If True, display colorbar next to each image.
+    """
+    # Determine the global min and max values for consistent scaling across both images
+    vmin = min(image1.min(), image2.min(), image3.min())
+    vmax = max(image1.max(), image2.max(), image3.max())
+
+    # Create a figure with 2 subplots
+    fig, axes = plt.subplots(1, 3, figsize=(12, 5))
+
+    # Display first image
+    im1 = axes[0].imshow(image1, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[0].axis('off')  # Turn off axis numbers and ticks
+    axes[0].set_title(title1)
+
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)
+
+    # Display second image
+    im2 = axes[1].imshow(image2, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[1].axis('off')
+    axes[1].set_title(title2)
+
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)
+
+    # Display third image
+    im3 = axes[2].imshow(image3, cmap='gray', interpolation='nearest', vmin=vmin, vmax=vmax)
+    axes[2].axis('off')
+    axes[2].set_title(title3)
+
+    # Add pixel values as text annotations
+    for i in range(image3.shape[0]):
+        for j in range(image3.shape[1]):
+            if np.abs(image3[i, j]) > 0.00001:
+                plt.text(j, i, f'{image3[i, j]:.3f}', ha='center', va='center', color='red')
+
+    # Optionally add a colorbar
+    if colorbar:
+        fig.colorbar(im3, ax=axes[2], fraction=0.046, pad=0.04)
+
+    plt.tight_layout()
+    plt.show()
+
+
 
 def read_png(file_path):
     """
@@ -116,3 +225,4 @@ def resize_image(arr, new_shape):
     # Convert back to float
     resized_array = np.array(resized_image, dtype=np.float32) / 255.0
     return resized_array
+

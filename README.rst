@@ -66,6 +66,55 @@ Installing
                 pip install -e .
 
 
+
+Running Experiment(s)
+---------------------
+
+
+On your local system, now you should have a local repository cloned from the remote repository. 
+Then, do the following:
+
+1. Change to the root of the local repository.
+
+    .. code-block::
+
+        cd comiser   
+
+2. List all your branches:
+
+    .. code-block::
+
+        git branch -a      
+
+3. You should see something similar to the following:
+
+    .. code-block::
+
+        * main   
+        drizzle_test
+        remotes/origin/drizzle_test
+        remotes/origin/main     
+
+4. Checkout the branch you want to use: drizzle_test
+
+    .. code-block::
+
+        git checkout drizzle_test      
+
+
+5. Generate the simulation image from grount truth:
+
+    .. code-block::
+
+        python experiment/PnP/run_forward.py
+
+6. Test the proximal map function:
+
+    .. code-block::
+
+        python experiment/PnP/run_proximal.py
+        python experiment/PnP/run_PnP.py
+
 Running Demo(s)
 ---------------
 

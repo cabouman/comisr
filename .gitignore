@@ -1,10 +1,13 @@
 
 demo/output/*
 demo/data/*
+experiment/data/*
+experiment/output/*
 
 # Mac OSX files
 .DS_Store
 *.png
+*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
