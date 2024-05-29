@@ -5,11 +5,47 @@ import warnings
 import gc
 import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
 import comiser.utils as cu
 
+import matplotlib.pyplot as plt
+import comiser.utils as cu
+#import bm3d
 
-def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=1000, tol=1e-4):
+def wrapper_GaussianFilter(image, sigma_denoiser):
+    import comiser.denoiser_LF as denoiser_LF
+    image_denoised = denoiser_LF.GaussianFilter(image,sigma=sigma_denoiser)
+    return image_denoised
+
+def wrapper_NLM(image, sigma_denoiser):
+    import comiser.denoiser_LF as denoiser_LF
+    image_denoised = denoiser_LF.NLM(image,sigma=sigma_denoiser)
+    return image_denoised
+
+def wrapper_BM3D(image,sigma_denoiser):
+    import comiser.denoiser_bm3d as denoiser_bm3d
+    image_denoised = denoiser_bm3d.my_BM3D(image, sigma=sigma_denoiser)
+    return image_denoised
+
+def wrapper_DPIR(image, sigma_denoiser): 
+    # Need to download the DPIR denoiser before using this method
+    import denoisers.DPIR.denoiser_DPIR as denoiser_DPIR
+    image_denoised = denoiser_DPIR.my_Denoiser(image,sigma_denoiser)
+    return image_denoised
+
+def get_denoiser(method):
+    denoisers = {
+        'BM3D': wrapper_BM3D,
+        'NLM': wrapper_NLM,
+        'DPIR': wrapper_DPIR,
+        'GF': wrapper_GaussianFilter
+    }
+
+    if method in denoisers:
+        return denoisers[method]
+    else:
+        raise ValueError('unknown')
+
+def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter=1000, tol=1e-4):
     """
     ADMM for solving:
     minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
@@ -32,6 +68,14 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=100
     # Initialize 
     u = np.zeros((m,n))
     v = np.zeros((m,n))
+    
+    # Initialize v with first few iterations of proximal map
+    for i in range(5):
+        v = proximal_map_numerically_stable(v, y, kernel, decimation_rate, lambda_param)
+
+    # Add a moving average kernel to smooth the image
+    MA_kernel = np.ones((2,2), dtype=float) /(2**2)
+    v = jax.scipy.signal.convolve(v, MA_kernel, mode="same")
 
     for iteration in range(max_iter):
 
@@ -50,10 +94,9 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, max_iter=100
         # denoising step
         v_tilde = x + u
 
-        # apply linear filter
-        v = filter_2D_jax(v_tilde, kernel)
-        #v = x + u
-            
+        denoiser_funtion = get_denoiser(denoiser_method)
+        v = denoiser_funtion(v_tilde, sigma_denoiser)
+
         # u-update (dual variable update)
         u += (x-v)
         
@@ -398,5 +441,28 @@ def pad_kernel(kernel, image_shape):
 
 def get_nrmse_convergence_error(measured_image, prox_image, kernel, decimation_rate):
     error_image = measured_image - apply_G(prox_image, kernel, decimation_rate)
-    nrmse = jnp.sqrt(jnp.sum(error_image**2) / jnp.sum(measured_image**2))
+    #nrmse = jnp.sqrt(jnp.sum(error_image**2) / jnp.sum(measured_image**2))
+    nrmse = np.linalg.norm(error_image) / np.linalg.norm(measured_image)
+    #nrmse = np.sqrt(np.sum(error_image**2) / np.sum(measured_image**2))
     return nrmse
+
+
+def shift_kernel(kernel, offset):
+    
+    #offset = kernel.shape[0] // 4
+
+    # Perform circular shift so that the center of the kernel goes to (0,0)
+    kernel = np.roll(kernel, -offset, axis=0)
+    kernel = np.roll(kernel, -offset, axis=1)
+
+    return kernel
+
+
+def mse(image_true, image_pred):
+    # Flatten images to vectors
+    true_values = image_true.flatten()
+    pred_values = image_pred.flatten()
+    # Compute mean squared error
+    mse = np.sqrt(np.mean((true_values - pred_values)**2))
+            
+    return mse
