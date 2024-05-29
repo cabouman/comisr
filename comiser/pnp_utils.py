@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 import comiser.utils as cu
 #import bm3d
 
-def wrapper_BM3D(image,sigma_denoiser):
-    import comiser.denoiser_bm3d as denoiser_bm3d
-    image_denoised = denoiser_bm3d.my_BM3D(image, sigma=sigma_denoiser)
+def wrapper_GaussianFilter(image, sigma_denoiser):
+    import comiser.denoiser_LF as denoiser_LF
+    image_denoised = denoiser_LF.GaussianFilter(image,sigma=sigma_denoiser)
     return image_denoised
 
 def wrapper_NLM(image, sigma_denoiser):
@@ -21,7 +21,13 @@ def wrapper_NLM(image, sigma_denoiser):
     image_denoised = denoiser_LF.NLM(image,sigma=sigma_denoiser)
     return image_denoised
 
+def wrapper_BM3D(image,sigma_denoiser):
+    import comiser.denoiser_bm3d as denoiser_bm3d
+    image_denoised = denoiser_bm3d.my_BM3D(image, sigma=sigma_denoiser)
+    return image_denoised
+
 def wrapper_DPIR(image, sigma_denoiser): 
+    # Need to download the DPIR denoiser before using this method
     import denoisers.DPIR.denoiser_DPIR as denoiser_DPIR
     image_denoised = denoiser_DPIR.my_Denoiser(image,sigma_denoiser)
     return image_denoised
@@ -30,7 +36,8 @@ def get_denoiser(method):
     denoisers = {
         'BM3D': wrapper_BM3D,
         'NLM': wrapper_NLM,
-        'DPIR': wrapper_DPIR
+        'DPIR': wrapper_DPIR,
+        'GF': wrapper_GaussianFilter
     }
 
     if method in denoisers:
