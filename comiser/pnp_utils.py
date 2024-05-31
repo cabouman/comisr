@@ -73,9 +73,9 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, denoiser_met
     for i in range(5):
         v = proximal_map_numerically_stable(v, y, kernel, decimation_rate, lambda_param)
 
-    # Add a moving average kernel to smooth the image
-    MA_kernel = np.ones((2,2), dtype=float) /(2**2)
-    v = jax.scipy.signal.convolve(v, MA_kernel, mode="same")
+    ## Add a moving average kernel to smooth the image
+    # MA_kernel = np.ones((2,2), dtype=float) /(2**2)
+    # v = jax.scipy.signal.convolve(v, MA_kernel, mode="same")
 
     for iteration in range(max_iter):
 
