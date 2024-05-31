@@ -39,6 +39,10 @@ if __name__ == "__main__":
 
     # Generate a gaussian kernel
     kernel = pnp.gen_gaussian_filter(P, filter_std)
+   
+    # Add a moving filter in the PSF
+    MA_kernel = np.ones((2,2), dtype=float) /(2**2)
+    kernel = jax.scipy.signal.convolve(kernel, MA_kernel, mode="same")
 
     # Generate synthetic image
     measured_image = pnp.apply_G(gt_image, kernel, decimation_rate)
@@ -90,4 +94,7 @@ if __name__ == "__main__":
     sigma_denoiser = 0.1
     denoiser_method = "GF"
     restored_image = pnp.admm_with_proximal(restored_image, measured_image, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter = NumIterations, tol=1e-5)
-    cu.display_3images(gt_image, measured_image, restored_image, title1='Ground Truth', title2 = 'Measured Image', title3=f'{NumIterations} Iterations of ADMM')
+    #cu.display_3images(gt_image, measured_image, restored_image, title1='Ground Truth', title2 = 'Measured Image', title3=f'{NumIterations} Iterations of ADMM')
+    
+    restored_image = cu.convert_jax_to_image(restored_image)
+    restored_image.save('./data/admm_restored_image_mv2.png')
