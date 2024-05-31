@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+import jax
 
 
 def display_image(image, title='2D Image', cmap='gray', colorbar=True):
@@ -226,3 +227,19 @@ def resize_image(arr, new_shape):
     resized_array = np.array(resized_image, dtype=np.float32) / 255.0
     return resized_array
 
+
+
+def convert_jax_to_image(jax_array):
+    # Convert JAX array to a NumPy array
+    numpy_array = jax.device_get(jax_array)
+    
+    # Scale and convert to uint8
+    # If your original data range varies, adjust the scaling factor accordingly
+    normalized_array = (numpy_array - numpy_array.min()) / (numpy_array.max() - numpy_array.min()) * 255.0
+    uint8_array = normalized_array.astype(np.uint8)
+
+    # Create a new Image from the uint8 array
+    final_image = Image.fromarray(uint8_array, 'L')  # Use 'RGB' if color is needed
+    # save image
+    # final_image.save('./data/restored_image.png')
+    return final_image
