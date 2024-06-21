@@ -122,7 +122,7 @@ def proximal_map_numerically_stable(prox_input_image, measured_image, kernel, de
     wiener_psf = gen_wiener_filter_psf(kernel, decimation_rate, lambda_param, desired_shape)
 
     # Debug
-    print(f'wiener_psf.shape: {wiener_psf.shape}')
+    # print(f'wiener_psf.shape: {wiener_psf.shape}')
     #cu.display_image(wiener_psf, title='Wiener PSF')
 
     # Add hamming window to the filter

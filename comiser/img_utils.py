@@ -50,3 +50,19 @@ def circular_crop(image, cropping=50):
     cropped_image = image[upper:lower, left:right] 
 
     return cropped_image
+
+def fft_shift_kernel(kernel, shift_x, shift_y):
+    # Step 1: Compute the FFT of the kernel
+    kernel_fft = np.fft.fft2(kernel)
+
+    # Step 2: Shift the FFT
+    # np.fft.fftshift is used to center the zero frequencies
+    # This makes the shift more intuitive and visually comprehensible
+    shifted_kernel_fft = np.fft.fftshift(kernel_fft)
+    shifted_kernel_fft = np.roll(shifted_kernel_fft, shift_y, axis=0)
+    shifted_kernel_fft = np.roll(shifted_kernel_fft, shift_x, axis=1)
+    shifted_kernel_fft = np.fft.ifftshift(shifted_kernel_fft)
+
+    # Step 3: Compute the inverse FFT
+    shifted_kernel = np.fft.ifft2(shifted_kernel_fft)
+    return np.real(shifted_kernel)  # Convert from complex to real
