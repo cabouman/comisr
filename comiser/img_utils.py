@@ -66,3 +66,33 @@ def fft_shift_kernel(kernel, shift_x, shift_y):
     # Step 3: Compute the inverse FFT
     shifted_kernel = np.fft.ifft2(shifted_kernel_fft)
     return np.real(shifted_kernel)  # Convert from complex to real
+
+
+def fft_subpixel_shift(img, dx, dy):
+    """
+    Shift an image by subpixel amounts using FFT.
+
+    Parameters:
+    - img: 2D numpy array, the image or kernel to shift.
+    - dx, dy: float, subpixel shift in x and y directions.
+    """
+    # Get the image dimensions
+    M, N = img.shape
+    
+    # Compute the FFT of the image
+    fft_img = np.fft.fft2(img)
+    
+    # Generate grid of frequencies
+    u = np.fft.fftfreq(M)[:, None]  # column vector
+    v = np.fft.fftfreq(N)[None, :]  # row vector
+    
+    # Calculate phase shift
+    exp_term = np.exp(-1j * 2 * np.pi * (u * dx + v * dy))
+    
+    # Apply phase shift in frequency domain
+    fft_img_shifted = fft_img * exp_term
+    
+    # Compute the inverse FFT to get the shifted image
+    img_shifted = np.fft.ifft2(fft_img_shifted)
+    
+    return np.real(img_shifted)  # Return the real part

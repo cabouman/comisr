@@ -8,7 +8,6 @@ import jax.numpy as jnp
 import comiser.utils as cu
 
 import matplotlib.pyplot as plt
-import comiser.utils as cu
 #import bm3d
 
 def wrapper_GaussianFilter(image, sigma_denoiser):
@@ -463,6 +462,6 @@ def mse(image_true, image_pred):
     true_values = image_true.flatten()
     pred_values = image_pred.flatten()
     # Compute mean squared error
-    mse = np.sqrt(np.mean((true_values - pred_values)**2))
+    mse = jnp.sqrt(jnp.mean((true_values - pred_values)**2))
             
     return mse

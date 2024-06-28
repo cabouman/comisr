@@ -1,5 +1,4 @@
 # MACE 
-
 import numpy as np
 import pnp_utils as pnp
 
@@ -13,15 +12,6 @@ def F(w, measured_images, kernels, decimation_rate, lambda_param):
         this_w = pnp.proximal_map_numerically_stable(this_w , measured_image, kernel, decimation_rate, lambda_param )
         #cu.display_image(this_w, title='proxi')
 
-        # for i in range(10):
-        #     measured_image = measured_images[j,:]
-        #     kernel = kernels[j,:]
-        #     #decimation_rate = 2
-        #     #lambda_param = 2
-        #     this_w = w[j,:]
-
-        #     this_w = pnp.proximal_map_numerically_stable(this_w , measured_image, kernel, decimation_rate, lambda_param )
-        # # prox_image, measured_image, kernel, decimation_rate, lambda_param
         w[j,:] = this_w
 
     return w  # Assuming A is some predefined matrix
@@ -37,13 +27,13 @@ from multiprocessing import Pool
 
 def parallel_F(w, measured_images, kernels, decimation_rate, lambda_param):
     # Assume kernel is constant across all calls, adapt if necessary
-    kernel = kernels[0, :]
+    # kernel = kernels[0, :]
 
     # Prepare arguments for each process
-    args = [(j, w[j, :], measured_images[j, :], kernel, decimation_rate, lambda_param) for j in range(w.shape[0])]
+    args = [(j, w[j, :], measured_images[j, :], kernels[j,:], decimation_rate, lambda_param) for j in range(w.shape[0])]
 
     # Number of processes
-    num_processes = 5  # Adjust this based on your CPU
+    num_processes = 4  # Adjust this based on your CPU
 
     # Create a pool of processes
     with Pool(processes=num_processes) as pool:
