@@ -1,6 +1,6 @@
 import types
 import numpy as np
-import yaml
+#import yaml
 import warnings
 import gc
 import jax
@@ -85,7 +85,7 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, denoiser_met
 
         # Test that iterated prox is converging to the correct solution
         nrmse1 = get_nrmse_convergence_error(y, x, kernel, decimation_rate)
-        print(f'RMSE 1 = {nrmse1}')
+        # print(f'RMSE 1 = {nrmse1}')
 
         #debug
         #cu.display_images(y, x, title1='Measured Image', title2=f'{iteration} Iterations of Proximal Map')

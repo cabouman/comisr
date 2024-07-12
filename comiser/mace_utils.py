@@ -20,7 +20,12 @@ def F(w, measured_images, kernels, decimation_rate, lambda_param):
 def process_single_item(args):
     j, w_j, measured_image, kernel, decimation_rate, lambda_param = args
     # Apply the proximal map function
-    w_j_updated = pnp.proximal_map_numerically_stable(w_j, measured_image, kernel, decimation_rate, lambda_param)
+    #w_j_updated = pnp.proximal_map_numerically_stable(w_j, measured_image, kernel, decimation_rate, lambda_param)
+    sigma_denoiser = 0.1
+    denoiser_method = "BM3D"  #'BM3D': wrapper_BM3D,'NLM': wrapper_NLM,'DPIR': wrapper_DPIR,'GF': wrapper_GaussianFilter
+    w_j_updated = pnp.admm_with_proximal(w_j, measured_image, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter = 1, tol=1e-5)
+
+
     return j, w_j_updated
 
 from multiprocessing import Pool
