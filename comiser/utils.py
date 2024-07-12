@@ -243,3 +243,28 @@ def convert_jax_to_image(jax_array):
     # save image
     # final_image.save('./data/restored_image.png')
     return final_image
+
+def add_noise_to_image(image, mean=0, std=0.1):
+    # add noise
+    # Generate Gaussian noise
+    gaussian_noise = np.random.normal(mean, std, image.shape)
+
+    # Add noise to the image
+    noised_image = image + gaussian_noise
+
+    # Ensure values are within the correct range
+    noised_image = np.clip(noised_image, image.min(), image.max())
+    return noised_image
+
+
+# Function to normalize data to the range [0, 1]
+def min_max_normalize(data):
+    min_val = np.min(data)
+    max_val = np.max(data)
+    normalized_data = (data - min_val) / (max_val - min_val)
+    return normalized_data, min_val, max_val
+
+# Function to denormalize data back to the original range
+def min_max_denormalize(normalized_data, min_val, max_val):
+    original_data = normalized_data * (max_val - min_val) + min_val
+    return original_data
