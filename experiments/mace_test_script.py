@@ -6,10 +6,10 @@ import time
 
 # add parent path to import functions in the comiser folder 
 import sys
-sys.path.append('../comiser')  
-import pnp_utils as pnp
-import utils as cu
-import img_utils as cimgu
+sys.path.append('../')  
+import comiser.pnp_utils as pnp
+import comiser.utils as cu
+import comiser.img_utils as cimgu
 
 
 # Example function F, which could be a linear transformation or any application-specific function
@@ -80,10 +80,14 @@ print(f'ground truth image shape: {gt_image.shape}')
 kernel = pnp.gen_gaussian_filter(P, 2.0)
 measured_image = pnp.apply_G(gt_image, kernel, decimation_rate)
 
+# Check data range
+print(f"Data range: {measured_image.min()} to {measured_image.max()}")
+
 kernels = np.expand_dims(kernel, axis=0)
 measured_images = np.expand_dims(measured_image, axis=0)
 gt_image_3dim = np.expand_dims(gt_image, axis=0)
 gt_images = np.expand_dims(gt_image, axis=0)
+
 
 rad = 2
 frameNumber = (rad+1)**2   # may increase the numebr of frames
@@ -94,8 +98,8 @@ frameNumber = (rad+1)**2   # may increase the numebr of frames
 fn = 0
 for i in range (-rad, rad+1):
     for j in range(-rad,rad+1):
-        shiftx = i / rad
-        shifty = j / rad
+        shiftx = i / rad / 2
+        shifty = j / rad / 2
         fn = fn + 1
 
         #shiftx = (np.random.rand() - 0.5) * 0.5
@@ -105,6 +109,22 @@ for i in range (-rad, rad+1):
 
         kernel_shift = cimgu.fft_subpixel_shift(kernel, shiftx, shifty)
         measured_image_shift = pnp.apply_G(gt_image, kernel_shift, decimation_rate)
+
+        # # add noise
+        measured_image_shift = cu.add_noise_to_image(measured_image_shift, 0, 0.1)
+        measured_image_shift = np.clip(measured_image_shift, 0, 1)
+
+        # # Generate Gaussian noise
+        # gaussian_noise = np.random.normal(0, 0.1, measured_image_shift.shape)
+
+        # # Add noise to the image
+        # measured_image_shift = measured_image_shift + gaussian_noise
+
+        # # Ensure values are within the correct range
+        # measured_image_shift = np.clip(measured_image_shift, 0.0, 1.0)
+        
+        if (j==0):
+            cu.display_3images(gt_image, measured_image, measured_image_shift,  title1='GT', title2='measured_0', title3='measured shifted')
 
         kernel_shift = np.expand_dims(kernel_shift, axis=0)
         measured_image_shift = np.expand_dims(measured_image_shift, axis=0)
@@ -130,8 +150,24 @@ w = np.zeros(gt_images.shape)
 
 rmse_values = []
 for iteration in tqdm(range(max_iterations)):
+    # Step 1:
     x = F(w, measured_images, kernels, decimation_rate, lambda_param)
+
+    # Step 2:
     z = G_mu(2 * x - w)
+    
+    # Step 3: add denoiser
+    # project data to (0,1) space
+    normalized_z, min_val, max_val = cu.min_max_normalize(z)
+
+    # denoiser
+    denoiser_funtion = pnp.get_denoiser(method='BM3D')
+    denoised_image = denoiser_funtion(normalized_z, 0.1)
+    
+    #project data back to original space
+    z = cu.min_max_denormalize(denoised_image, min_val, max_val)
+
+    # Step 4
     w_new = w + 2 * rho * (z - x)
 
     # Convergence check (stop if the update is small)
