@@ -122,7 +122,7 @@ gamm = 0.9
 
 
 # Main iterative process
-max_iterations = 20
+max_iterations = 10
 tolerance = 1e-3
 
 #image_size = 256                # Image size
