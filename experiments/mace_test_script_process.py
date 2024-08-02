@@ -14,28 +14,34 @@ from skimage import restoration
 
 # add parent path to import functions in the comiser folder 
 import sys
+sys.path.append('../comiser')  
 sys.path.append('../')  
-import comiser.pnp_utils as pnp
-import comiser.utils as cu
-import comiser.img_utils as cimgu
+
+import pnp_utils as pnp
+import utils as cu
+import img_utils as cimgu
 
 
 DenoiserEnabled = 0
 # Load in the image
 image_folder = 'data/eric_data/'
-NUM_images = 10
+NUM_images = 1
 
 
-def load_images_from_folder(file_path, prefix="frame_", extension=".png", num_images = NUM_images):
+def load_images_from_folder(file_path, prefix="frame_", extension=".png", num_images = 10):
     images = []
-    for i in range(0, num_images + 1):
-        filename = os.path.join(file_path, f"{prefix}{i}{extension}")
+    for i in range(1, num_images + 1):
+        #filename = os.path.join(file_path, f"{prefix}{i}{extension}")
+        filename = os.path.join(file_path, "{}{}{}".format(prefix, i, extension))
+
         img = cv.imread(filename, cv.IMREAD_GRAYSCALE)
 
         if img is not None:
             images.append(img)
         else:
-            print(f"Warning: Could not load image {filename}")
+            #print(f"Warning: Could not load image {filename}")
+            print("Warning: Could not load image {}".format(filename))
+
     return images
 
 
@@ -62,19 +68,23 @@ def G_mu(x):
     return new_array  # Example: Simple thresholding
 
 # Load images
-images = load_images_from_folder(image_folder, num_images=2)
-gt_image = cv.imread(f"{image_folder}gt_image.png", cv.IMREAD_GRAYSCALE)
+images = load_images_from_folder(image_folder, num_images = NUM_images)
+#gt_image = cv.imread(f"{image_folder}gt_image.png", cv.IMREAD_GRAYSCALE)
+gt_image = cv.imread("{}gt_image.png".format(image_folder), cv.IMREAD_GRAYSCALE)
+
 
 gt_image, min_val, max_val = cu.min_max_normalize(gt_image)
 images, min_val, max_val = cu.min_max_normalize(images)
 
 
-cu.display_image(images[1], title='load frame 1')
+cu.display_image(images[0], title='load frame 1')
 
 #kernels = np.load(f"{image_folder}kernels.npy")
 
 # Load the MATLAB file
-mat_data = scipy.io.loadmat(f"{image_folder}psf_1X_binning_data.mat")
+#mat_data = scipy.io.loadmat(f"{image_folder}psf_1X_binning_data.mat")
+mat_data = scipy.io.loadmat("{}psf_1X_binning_data.mat".format(image_folder))
+
 
 # Extract the array
 kernel = mat_data['psf_1X_binning_data']
@@ -83,16 +93,23 @@ kernel = mat_data['psf_1X_binning_data']
 kernel = np.array(kernel)
 
 # Display the array
-print("Loaded array from MATLAB:")
+#print("Loaded array from MATLAB:")
+print("Loaded {} images.".format(len(images)))
+
 print(kernel)
 
 
 # Check the number of images loaded
-print(f"Loaded {len(images)} images.")
+#print(f"Loaded {len(images)} images.")
+print("Loaded {} images.".format(len(images)))
+
 
 # Print the shape of each loaded image
 for idx, img in enumerate(images):
-    print(f"Shape of image {idx + 1}: {img.shape}")
+    #print(f"Shape of image {idx + 1}: {img.shape}")
+    print("Shape of image {}: {}".format(idx + 1, img.shape))
+
+    
 
 
 # Define the dimensions of the problem
@@ -105,7 +122,7 @@ gamm = 0.9
 
 
 # Main iterative process
-max_iterations = 100
+max_iterations = 20
 tolerance = 1e-3
 
 #image_size = 256                # Image size
@@ -149,11 +166,15 @@ for i in range(len(images)):
 
 
     # Calculate the shift using phase cross-correlation
-    calculated_shift, error, diffphase = phase_cross_correlation(ref_image, shifted_image)
+    calculated_shift, error, diffphase = phase_cross_correlation(shifted_image, ref_image)
 
-    print(f'Calculated offset (y, x): {calculated_shift}')
-    print(f'Error: {error}')
-    print(f'Diffphase: {diffphase}')
+    #print(f'Calculated offset (y, x): {calculated_shift}')
+    #print(f'Error: {error}')
+    #print(f'Diffphase: {diffphase}')
+
+    print('Calculated offset (y, x): {}'.format(calculated_shift))
+    print('Error: {}'.format(error))
+    print('Diffphase: {}'.format(diffphase))
 
     # Apply the same shift to the PSF
     shifted_psf = fourier_shift(np.fft.fftn(kernel_padded), calculated_shift)
@@ -166,11 +187,15 @@ for i in range(len(images)):
     # Stack the arrays along a new axis (0 in this case)
     #kernels = np.stack(array_list, axis=0)
     kernels = np.concatenate((kernels,np.expand_dims(shifted_psf, axis=0)), axis=0)
-    print(f"Loaded {len(kernels)} kernels.")
+    
+    #print(f"Loaded {len(kernels)} kernels.")
+    print("Loaded {} kernels.".format(len(kernels)))
+
 
 # delete the first kernel 
 kernels = kernels[1:]
-print(f"Loaded {len(kernels)} kernels.")
+#print(f"Loaded {len(kernels)} kernels.")
+print("Loaded {} kernels.".format(len(kernels)))
 
 #w = gt_images
 #mu = 0.1
@@ -217,8 +242,10 @@ for iteration in tqdm(range(max_iterations)):
         #project data back to original space
         z = cu.min_max_denormalize(denoised_image, min_val, max_val)"""
 
-        denoiser_funtion = pnp.get_denoiser(method='GF')
+        #denoiser_funtion = pnp.get_denoiser(method='GF')
         #denoiser_funtion = pnp.get_denoiser(method='BM3D')
+        denoiser_funtion = pnp.get_denoiser(method='DPIR')
+        
 
         denoised_image = np.zeros_like(z)
         denoised_image[0] = denoiser_funtion(z[0], 0.1)
@@ -235,8 +262,7 @@ for iteration in tqdm(range(max_iterations)):
 
     # Step 4
 
-    #𝑣←𝛾𝑣+2ρ (1−𝛾) (𝒛−𝒙)
-	#𝒘←𝒘+"𝑣"
+
     v = gamm * v + 2 * rho * (1 - gamm) * (z - x)
     w_new = w + v
 
@@ -251,7 +277,8 @@ for iteration in tqdm(range(max_iterations)):
 
     # Convergence check (stop if the update is small)
     if np.linalg.norm(w_new - w) < tolerance:
-        print(f"Converged after {iteration+1} iterations.")
+        #print(f"Converged after {iteration+1} iterations.")
+        print("Converged after {} iterations.".format(iteration + 1))
         break
     
     w = w_new
@@ -272,7 +299,9 @@ np.save('./data/rmse_values.npy', rmse_values)
 
 # compute the mse
 rmse = pnp.mse(x_star, ref_image)
-print(f"RMSE between the restored image and GT image is {rmse}")
+#print(f"RMSE between the restored image and GT image is {rmse}")
+print("RMSE between the restored image and GT image is {}".format(rmse))
+
 
 import matplotlib.pyplot as plt
 

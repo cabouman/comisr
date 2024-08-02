@@ -6,7 +6,7 @@ import jax.numpy as jnp
 
 # add parent path to import functions in the comiser folder 
 import sys
-sys.path.append('..')  
+sys.path.append('../')  
 import comiser.utils as cu
 import comiser.pnp_utils as pnp
 import comiser.img_utils as cimgu
@@ -39,6 +39,8 @@ if __name__ == "__main__":
 
     # Generate a gaussian kernel
     kernel = pnp.gen_gaussian_filter(P, filter_std)
+    cu.display_image(kernel, title =f'Gaussian kernel, P = {P} , std = {filter_std}')
+
 
     # Generate synthetic image
     measured_image = pnp.apply_G(gt_image, kernel, decimation_rate)
@@ -49,23 +51,31 @@ if __name__ == "__main__":
     wiener_psf = pnp.gen_wiener_filter_psf(kernel, decimation_rate, lambda_param, desired_shape)
 
     # Display results
-    # cu.display_image(wiener_psf, title=f'Wiener PSF lambda = {lambda_param} shape = {desired_shape[0]}')
+    cu.display_image(wiener_psf, title =f'Wiener PSF lambda = {lambda_param} shape = {desired_shape[0]}')
     # #####################
 
-    # #########################
+    """ #########################
     # Sanity check: Initialize with ground truth and check that it doesn't change
     prox_image = gt_image
+    admm_image = gt_image
 
     NumIterations = 1
     for i in range(NumIterations):
         prox_image = pnp.proximal_map_numerically_stable(prox_image, measured_image, kernel, decimation_rate, lambda_param )
 
+        sigma_denoiser = 0
+        denoiser_method = "GF"  # GF, BM3D, DRUNet
+        admm_image = pnp.admm_with_proximal_test(admm_image, measured_image, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter = NumIterations, tol=1e-5)
+    
+
     # Display ground truth and prox output
-    #cu.display_images(gt_image, prox_image, title1='Ground Truth', title2='Prox Output Image')
+    cu.display_3images(gt_image, prox_image, admm_image, title1='Ground Truth', title2='Prox restored', title3='ADMM restored') 
+    """
 
 
     # #########################
     # Convergence check: Initialize with zeros and see if it converges to the ML estimate.
+    
     prox_image = jnp.zeros(gt_image.shape)
     # prox_image_start = prox_image
 
@@ -88,6 +98,10 @@ if __name__ == "__main__":
     restored_image = jnp.zeros(gt_image.shape)
     # denoiser_kernel = pnp.gen_gaussian_filter(2*P, filter_std/4)
     sigma_denoiser = 0.1
-    denoiser_method = "GFP"
+    denoiser_method = "GF"  # GF, BM3D, DRUNet
     restored_image = pnp.admm_with_proximal(restored_image, measured_image, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter = NumIterations, tol=1e-5)
-    cu.display_3images(gt_image, measured_image, restored_image, title1='Ground Truth', title2 = 'Measured Image', title3=f'{NumIterations} Iterations of ADMM')
+    
+    restored_image_save = cu.convert_jax_to_image(restored_image)
+    restored_image_save.save('./data/restored_image_admm.png')
+    
+    cu.display_3images(gt_image, measured_image, restored_image, title1='Ground Truth', title2 = 'Measured Image (simulated)', title3=f'{NumIterations} Iterations of ADMM')
