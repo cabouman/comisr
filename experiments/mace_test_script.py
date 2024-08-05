@@ -2,14 +2,24 @@ import numpy as np
 import jax.numpy as jnp
 from tqdm import tqdm
 import time
+from skimage.restoration import denoise_bilateral
 
 
 # add parent path to import functions in the comiser folder 
 import sys
+
+sys.path.append('../comiser')  
 sys.path.append('../')  
-import comiser.pnp_utils as pnp
-import comiser.utils as cu
-import comiser.img_utils as cimgu
+
+import utils as cu
+import pnp_utils as pnp
+import img_utils as cimgu
+
+
+#sys.path.append('../comiser/')  
+#import pnp_utils as pnp
+#import utils as cu
+#import img_utils as cimgu
 
 
 # Example function F, which could be a linear transformation or any application-specific function
@@ -46,7 +56,7 @@ def F(w, measured_images, kernels, decimation_rate, lambda_param):
 # Define the dimensions of the problem
 N = 3  # Number of dimensions, or the number of frames
 mu = 0.1
-rho = 0.7  # Step size or regularization parameter try 0.7 or 0.8 
+rho = 0.5  # Step size or regularization parameter try 0.7 or 0.8 
 
 # Dummy function G_mu, assuming some form of projection or transformation
 def G_mu(x):
@@ -57,7 +67,7 @@ def G_mu(x):
 
 
 # Main iterative process
-max_iterations = 100
+max_iterations = 10
 tolerance = 1e-3
 
 image_size = 256                # Image size
@@ -98,8 +108,8 @@ frameNumber = (rad+1)**2   # may increase the numebr of frames
 fn = 0
 for i in range (-rad, rad+1):
     for j in range(-rad,rad+1):
-        shiftx = i / rad / 2
-        shifty = j / rad / 2
+        shiftx = i / rad / 2 * decimation_rate
+        shifty = j / rad / 2 * decimation_rate
         fn = fn + 1
 
         #shiftx = (np.random.rand() - 0.5) * 0.5
@@ -124,18 +134,19 @@ for i in range (-rad, rad+1):
         # measured_image_shift = np.clip(measured_image_shift, 0.0, 1.0)
         
         if (j==0):
-            cu.display_3images(gt_image, measured_image, measured_image_shift,  title1='GT', title2='measured_0', title3='measured shifted')
+            cu.display_3images(gt_image, measured_image, measured_image_shift,  title1='GT', title2='simulated: apply G', title3='simulated: add noise')
 
         kernel_shift = np.expand_dims(kernel_shift, axis=0)
         measured_image_shift = np.expand_dims(measured_image_shift, axis=0)
 
         # stack 
-        kernels = np.concatenate((kernels, kernel_shift), axis=0)
-        measured_images = np.concatenate((measured_images, measured_image_shift), axis=0)
-        gt_images = np.concatenate((gt_images, gt_image_3dim), axis=0)
+        #kernels = np.concatenate((kernels, kernel_shift), axis=0)
+        #measured_images = np.concatenate((measured_images, measured_image_shift), axis=0)
+        #gt_images = np.concatenate((gt_images, gt_image_3dim), axis=0)
 
 print("Shape of combined image array:", measured_images.shape)
 print("Shape of combined kernel array:", kernels.shape)
+
 
 
 # Initialize x and w
@@ -148,7 +159,7 @@ w = np.zeros(gt_images.shape)
 
 # MACE 
 
-rmse_values = []
+nrmse_conv = []
 for iteration in tqdm(range(max_iterations)):
     # Step 1:
     x = F(w, measured_images, kernels, decimation_rate, lambda_param)
@@ -156,16 +167,41 @@ for iteration in tqdm(range(max_iterations)):
     # Step 2:
     z = G_mu(2 * x - w)
     
-    # Step 3: add denoiser
+    """ # Step 3: add denoiser
     # project data to (0,1) space
     normalized_z, min_val, max_val = cu.min_max_normalize(z)
 
+    print('min and max:', min_val, max_val)
+
     # denoiser
-    denoiser_funtion = pnp.get_denoiser(method='BM3D')
-    denoised_image = denoiser_funtion(normalized_z, 0.1)
+    #denoiser_funtion = pnp.get_denoiser(method='BM3D')
+    #denoised_image = denoiser_funtion(normalized_z, 0.1)
+
+    # Apply BM3D denoising
+    # Apply BM3D denoising to each slice of the 3D image
+    denoised_image = np.zeros_like(z)
+    denoised_image[0] = denoise_bilateral(z[0], sigma_color=0.05, sigma_spatial=0.05*(max_val - min_val))
+
+    for i in range(1, z.shape[0]):
+        denoised_image[i] = denoised_image[0] 
+
+    #denoised_image = denoise_bilateral(z, sigma_color=0.05, sigma_spatial=15)
+
     
     #project data back to original space
-    z = cu.min_max_denormalize(denoised_image, min_val, max_val)
+    z = cu.min_max_denormalize(denoised_image, min_val, max_val) """
+
+    #denoiser_funtion = pnp.get_denoiser(method='GF')
+    #denoiser_funtion = pnp.get_denoiser(method='BM3D')
+    denoiser_funtion = pnp.get_denoiser(method='DPIR')
+
+
+    denoised_image = np.zeros_like(z)
+    denoised_image[0] = denoiser_funtion(z[0], 0.1)
+    for i in range(1, z.shape[0]):
+        denoised_image[i] = denoised_image[0] 
+
+    z = denoised_image
 
     # Step 4
     w_new = w + 2 * rho * (z - x)
@@ -178,8 +214,8 @@ for iteration in tqdm(range(max_iterations)):
     w = w_new
     temp = z[0,:]
     #cu.display_image(temp, title='restored')
-    rmse = pnp.mse(temp, gt_image)
-    rmse_values.append(rmse)
+    rmse = pnp.get_nrmse_convergence_error(measured_image, temp, kernel, decimation_rate)
+    nrmse_conv.append(rmse)
     time.sleep(0.1)
 
 
@@ -187,16 +223,16 @@ for iteration in tqdm(range(max_iterations)):
 x_star = z[0,:]
 
 # Save to a binary file in NumPy `.npy` format
-np.save('./data/rmse_values.npy', rmse_values)
+np.save('./data/rmse_values.npy', nrmse_conv)
 
 # compute the mse
-rmse = pnp.mse(x_star, gt_image)
-print(f"RMSE between the restored image and GT image is {rmse}")
+nrmse = pnp.nrmse(gt_image, x_star, kernel, decimation_rate)
+print(f"RMSE between the restored image and GT image is {nrmse}")
 
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(10, 6))
-plt.plot(rmse_values, marker='o', linestyle='-', color='b')
+plt.plot(nrmse_conv, marker='o', linestyle='-', color='b')
 plt.title('Convergence Chart of RMSE')
 plt.xlabel('Iteration')
 plt.ylabel('RMSE')
@@ -206,4 +242,4 @@ plt.show()
 
 restored_image = cu.convert_jax_to_image(x_star)
 restored_image.save('./data/restored_image_mace.png')
-cu.display_3images(gt_image, measured_image, x_star, title1='GT', title2='measured_0', title3='MACE restored')
+cu.display_3images(gt_image, measured_image_shift[0,:,:], x_star, title1='GT', title2='noised', title3='MACE restored')
