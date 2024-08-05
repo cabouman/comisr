@@ -66,6 +66,7 @@ frameNumber = (rad+1)**2   # may increase the numebr of frames
     #shifty = (np.random.rand() -0.5) * 0.5
 
 fn = 0
+
 pre_kernel = np.expand_dims(kernel, axis=0)
 
 for i in range (-rad, rad+1):
@@ -114,9 +115,6 @@ for i in range (-rad, rad+1):
 
 stacked_kernels = stacked_kernels[1:]
 np.save('data/kernels', stacked_kernels)
-
-
-
 
 print("Shape of combined image array:", measured_images.shape)
 print("Shape of combined kernel array:", kernels.shape)
