@@ -298,7 +298,9 @@ x_star, min_val, max_val = cu.min_max_normalize(x_star)
 np.save('./data/rmse_values.npy', rmse_values)
 
 # compute the mse
-rmse = pnp.mse(x_star, ref_image)
+#rmse = pnp.mse(x_star, ref_image)
+nrmse = pnp.nrmse(gt_image, x_star, kernel, decimation_rate)
+
 #print(f"RMSE between the restored image and GT image is {rmse}")
 print("RMSE between the restored image and GT image is {}".format(rmse))
 
