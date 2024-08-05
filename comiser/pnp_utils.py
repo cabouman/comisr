@@ -5,6 +5,10 @@ import warnings
 import gc
 import jax
 import jax.numpy as jnp
+
+
+import sys
+sys.path.append('../')  
 import comiser.utils as cu
 
 import matplotlib.pyplot as plt
@@ -68,6 +72,7 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, denoiser_met
     u = np.zeros((m,n))
     v = np.zeros((m,n))
     
+    
     # Initialize v with first few iterations of proximal map
     for i in range(5):
         v = proximal_map_numerically_stable(v, y, kernel, decimation_rate, lambda_param)
@@ -82,6 +87,8 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, denoiser_met
         x_tilde = v - u 
         x_old = x_tilde.copy()
         x = proximal_map_numerically_stable(x_tilde, y, kernel, decimation_rate, lambda_param)
+        cu.display_image(x, title ='proximal in admm')
+
 
         # Test that iterated prox is converging to the correct solution
         nrmse1 = get_nrmse_convergence_error(y, x, kernel, decimation_rate)
@@ -94,7 +101,145 @@ def admm_with_proximal(x, y, kernel, decimation_rate, lambda_param, denoiser_met
         v_tilde = x + u
 
         denoiser_funtion = get_denoiser(denoiser_method)
+
+        v_tilde = min_max_normalize(v_tilde)
         v = denoiser_funtion(v_tilde, sigma_denoiser)
+        v = min_max_denormalize(v)
+
+        # u-update (dual variable update)
+        u += (x-v)
+        
+        # Convergence check
+        if np.linalg.norm(x - x_old) < tol:
+            print(f"Convergence reached after {iteration + 1} iterations.")
+            break
+    return x
+
+def admm_with_proximal_normalize(x, y, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter=1000, tol=1e-4):
+    """
+    ADMM for solving:
+    minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
+    f(x) = |y-Gx|^2
+    
+    Parameters:
+    x: prox_input_image
+    y: measured_image
+    rho : float
+        Penalty parameter for the ADMM.
+    max_iter : int
+        Maximum number of iterations.
+    tol : float
+        Tolerance for the stopping criterion.
+    """
+    M, N = y.shape
+    m = M * decimation_rate
+    n = N * decimation_rate
+
+    # Initialize 
+    u = np.zeros((m,n))
+    v = np.zeros((m,n))
+    
+    
+    # Initialize v with first few iterations of proximal map
+    for i in range(5):
+        v = proximal_map_numerically_stable(v, y, kernel, decimation_rate, lambda_param)
+
+    # Add a moving average kernel to smooth the image
+    MA_kernel = np.ones((2,2), dtype=float) /(2**2)
+    v = jax.scipy.signal.convolve(v, MA_kernel, mode="same")
+
+    for iteration in range(max_iter):
+
+        # inverse step - priximal map
+        x_tilde = v - u 
+        x_old = x_tilde.copy()
+        x = proximal_map_numerically_stable(x_tilde, y, kernel, decimation_rate, lambda_param)
+        cu.display_image(x, title ='proximal in admm')
+
+
+        # Test that iterated prox is converging to the correct solution
+        nrmse1 = get_nrmse_convergence_error(y, x, kernel, decimation_rate)
+        # print(f'RMSE 1 = {nrmse1}')
+
+        #debug
+        #cu.display_images(y, x, title1='Measured Image', title2=f'{iteration} Iterations of Proximal Map')
+
+        # denoising step
+        v_tilde = x + u
+
+        denoiser_funtion = get_denoiser(denoiser_method)
+
+        v_tilde = min_max_normalize(v_tilde)
+        v = denoiser_funtion(v_tilde, sigma_denoiser)
+        v = min_max_denormalize(v)
+
+        # u-update (dual variable update)
+        u += (x-v)
+        
+        # Convergence check
+        if np.linalg.norm(x - x_old) < tol:
+            print(f"Convergence reached after {iteration + 1} iterations.")
+            break
+    return x
+
+
+def admm_with_proximal_test(x, y, kernel, decimation_rate, lambda_param, denoiser_method, sigma_denoiser, max_iter=1000, tol=1e-4):
+    """
+    ADMM for solving:
+    minimize_x f(x)+ rho |x-(v-u)|^2 using the proximal map.
+    f(x) = |y-Gx|^2
+    
+    Parameters:
+    x: prox_input_image
+    y: measured_image
+    rho : float
+        Penalty parameter for the ADMM.
+    max_iter : int
+        Maximum number of iterations.
+    tol : float
+        Tolerance for the stopping criterion.
+    """
+    M, N = y.shape
+    m = M * decimation_rate
+    n = N * decimation_rate
+
+    # Initialize 
+    u = np.zeros((m,n))
+    v = x
+    
+    
+    # Initialize v with first few iterations of proximal map
+    #for i in range(5):
+    #    v = proximal_map_numerically_stable(v, y, kernel, decimation_rate, lambda_param)
+
+    # Add a moving average kernel to smooth the image
+    MA_kernel = np.ones((2,2), dtype=float) /(2**2)
+    #v = jax.scipy.signal.convolve(v, MA_kernel, mode="same")
+
+    for iteration in range(max_iter):
+
+        # inverse step - priximal map
+        x_tilde = v - u 
+        x_old = x_tilde.copy()
+        x = proximal_map_numerically_stable(x_tilde, y, kernel, decimation_rate, lambda_param)
+        cu.display_image(x, title ='proximal in admm')
+
+
+        # Test that iterated prox is converging to the correct solution
+        nrmse1 = get_nrmse_convergence_error(y, x, kernel, decimation_rate)
+        # print(f'RMSE 1 = {nrmse1}')
+
+        #debug
+        #cu.display_images(y, x, title1='Measured Image', title2=f'{iteration} Iterations of Proximal Map')
+
+        # denoising step
+        v_tilde = x + u
+
+        #denoiser_funtion = get_denoiser(denoiser_method)
+
+        #v_tilde = cu.min_max_normalize(v_tilde)
+        #v = denoiser_funtion(v_tilde, sigma_denoiser)
+        #v = cu.min_max_denormalize(v)
 
         # u-update (dual variable update)
         u += (x-v)
@@ -166,7 +311,7 @@ def gen_wiener_filter_psf(kernel, decimation_rate, lambda_param , shape):
 
     # The transfer function should be real valued, so check that this is true.
     fractional_error = jnp.sum(jnp.square(transfer_function.imag))/jnp.sum(jnp.square(transfer_function.real))
-    if fractional_error < 1e-5:
+    if fractional_error < 1e-3:
         transfer_function = transfer_function.real
     else:
         raise ValueError(f"The transfer function is not real. Fractional error = {fractional_error}.")
@@ -463,5 +608,53 @@ def mse(image_true, image_pred):
     pred_values = image_pred.flatten()
     # Compute mean squared error
     mse = jnp.sqrt(jnp.mean((true_values - pred_values)**2))
-            
+    #nrmse = np.linalg.norm(image_true - image_pred) / np.linalg.norm(image_pred)
+        
     return mse
+
+def nrmse(image_true, image_pred, kernel, decimation_rate):
+    # Flatten images to vectors
+    #true_values = image_true.flatten()
+    #pred_values = image_pred.flatten()
+    # Compute mean squared error
+    #nrmse = np.linalg.norm(image_true - image_pred) / np.linalg.norm(image_pred)
+
+    Gx_gt = apply_G(image_true, kernel, decimation_rate)
+    Gx = apply_G(image_pred, kernel, decimation_rate)
+    nrmse = np.linalg.norm(Gx_gt - Gx) / np.linalg.norm(Gx_gt)
+
+    #nrmse = np.sqrt(np.mean((image_true - image_pred)**2) / np.mean(image_pred**2))
+
+    return nrmse
+
+
+def calculate_nrmse(true_image, pred_image):
+    # Ensure the images are numpy arrays
+    true_image = np.asarray(true_image)
+    pred_image = np.asarray(pred_image)
+    
+    # Calculate the mean squared error
+    mse = np.mean((true_image - pred_image) ** 2)
+    
+    # Calculate the root mean squared error
+    rmse = np.sqrt(mse)
+    
+    # Calculate the range of the ground truth image
+    range_true = np.max(true_image) - np.min(true_image)
+    
+    # Calculate the normalized root mean square error
+    nrmse = rmse / range_true
+    
+    return nrmse
+
+# Function to normalize data to the range [0, 1]
+def min_max_normalize(data):
+    min_val = np.min(data)
+    max_val = np.max(data)
+    normalized_data = (data - min_val) / (max_val - min_val)
+    return normalized_data, min_val, max_val
+
+# Function to denormalize data back to the original range
+def min_max_denormalize(normalized_data, min_val, max_val):
+    original_data = normalized_data * (max_val - min_val) + min_val
+    return original_data
