@@ -54,7 +54,7 @@ def F(w, measured_images, kernels, decimation_rate, lambda_param):
 #     return np.sign(x) * np.maximum(np.abs(x) - mu, 0)
 
 # Define the dimensions of the problem
-N = 3  # Number of dimensions, or the number of frames
+# N = 3  # Number of dimensions, or the number of frames
 mu = 0.1
 rho = 0.5  # Step size or regularization parameter try 0.7 or 0.8 
 
@@ -67,14 +67,15 @@ def G_mu(x):
 
 
 # Main iterative process
-max_iterations = 10
+max_iterations = 20
+
 tolerance = 1e-3
 
 image_size = 256                # Image size
 P = 10                           # Blur kernel with size (2P+1)x(2P+1)
 filter_std = 2.0                # spatial standard deviation of blur kernel
 decimation_rate = 2             # Integer decimation rate
-lambda_param = 0.8              # Seems to become numerically unstable for lambda_param < 0.5
+lambda_param = 0.3              # Seems to become numerically unstable for lambda_param < 0.5
 
 # Load in the 1951 AF target
 file_path = 'data/USAF-1951.svg.png'
@@ -90,6 +91,7 @@ print(f'ground truth image shape: {gt_image.shape}')
 kernel = pnp.gen_gaussian_filter(P, 2.0)
 measured_image = pnp.apply_G(gt_image, kernel, decimation_rate)
 
+
 # Check data range
 print(f"Data range: {measured_image.min()} to {measured_image.max()}")
 
@@ -99,8 +101,9 @@ gt_image_3dim = np.expand_dims(gt_image, axis=0)
 gt_images = np.expand_dims(gt_image, axis=0)
 
 
-rad = 2
+rad = 9
 frameNumber = (rad+1)**2   # may increase the numebr of frames
+
 #for fn in range(frameNumber):
     #shiftx = (np.random.rand() - 0.5) * 0.5
     #shifty = (np.random.rand() -0.5) * 0.5
@@ -110,7 +113,6 @@ for i in range (-rad, rad+1):
     for j in range(-rad,rad+1):
         shiftx = i / rad / 2 * decimation_rate
         shifty = j / rad / 2 * decimation_rate
-        fn = fn + 1
 
         #shiftx = (np.random.rand() - 0.5) * 0.5
         #shifty = (np.random.rand() -0.5) * 0.5
@@ -121,33 +123,62 @@ for i in range (-rad, rad+1):
         measured_image_shift = pnp.apply_G(gt_image, kernel_shift, decimation_rate)
 
         # # add noise
-        measured_image_shift = cu.add_noise_to_image(measured_image_shift, 0, 0.1)
-        measured_image_shift = np.clip(measured_image_shift, 0, 1)
+        #measured_image_shift = cu.add_noise_to_image(measured_image_shift, 0, 0.1)
+        #measured_image_shift = np.clip(measured_image_shift, 0, 1)
 
-        # # Generate Gaussian noise
-        # gaussian_noise = np.random.normal(0, 0.1, measured_image_shift.shape)
+        # # # Generate Gaussian noise
+        gaussian_noise = np.random.normal(0, 0.1, measured_image_shift.shape)
 
-        # # Add noise to the image
-        # measured_image_shift = measured_image_shift + gaussian_noise
+        # # # Add noise to the image
+        measured_image_shift = measured_image_shift + gaussian_noise
 
         # # Ensure values are within the correct range
-        # measured_image_shift = np.clip(measured_image_shift, 0.0, 1.0)
+        measured_image_shift = np.clip(measured_image_shift, 0.0, 1.0)
         
-        if (j==0):
+        if (fn==0):
             cu.display_3images(gt_image, measured_image, measured_image_shift,  title1='GT', title2='simulated: apply G', title3='simulated: add noise')
 
         kernel_shift = np.expand_dims(kernel_shift, axis=0)
         measured_image_shift = np.expand_dims(measured_image_shift, axis=0)
 
         # stack 
-        #kernels = np.concatenate((kernels, kernel_shift), axis=0)
-        #measured_images = np.concatenate((measured_images, measured_image_shift), axis=0)
-        #gt_images = np.concatenate((gt_images, gt_image_3dim), axis=0)
+        if (fn < frameNumber):
+            kernels = np.concatenate((kernels, kernel_shift), axis=0)
+            measured_images = np.concatenate((measured_images, measured_image_shift), axis=0)
+            gt_images = np.concatenate((gt_images, gt_image_3dim), axis=0)
+
+        fn = fn + 1
+
+
+# Keep only the first cell and set the rest to NaN
 
 print("Shape of combined image array:", measured_images.shape)
 print("Shape of combined kernel array:", kernels.shape)
 
 
+# # add noise
+#measured_image = cu.add_noise_to_image(measured_image, 0, 0.1)
+#measured_image = np.clip(measured_image, 0, 1)
+
+
+# load noised image
+
+#measured_image = np.load('./data/noised_measured_image.npy')
+#measured_images = np.expand_dims(measured_image, axis=0)
+#kernels = np.expand_dims(kernel, axis=0)
+#gt_images = np.expand_dims(gt_image, axis=0)
+
+
+# # selected_image = image_array[0:1, :, :]
+# frameSelected = frameNumber
+# measured_images = measured_images[1:frameSelected+1, :, :]
+# kernels = kernels[1:frameSelected+1, :, :]
+# gt_images = gt_images[1:frameSelected+1, :, :]
+
+print("Shape of combined image array:", measured_images.shape)
+print("Shape of combined kernel array:", kernels.shape)
+
+# test for one frame
 
 # Initialize x and w
 #x0 = np.random.rand(N)  # Random initial vector
@@ -229,6 +260,12 @@ np.save('./data/rmse_values.npy', nrmse_conv)
 nrmse = pnp.nrmse(gt_image, x_star, kernel, decimation_rate)
 print(f"RMSE between the restored image and GT image is {nrmse}")
 
+nrmse = np.sqrt(np.sum((gt_image - x_star)**2) / np.sum(x_star**2))
+print(f"RMSE sqrt between the restored image and GT image is {nrmse}")
+
+np.save('./data/mace_restored.npy', x_star)
+
+
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(10, 6))
@@ -240,6 +277,8 @@ plt.grid(True)
 plt.show()
 
 
-restored_image = cu.convert_jax_to_image(x_star)
-restored_image.save('./data/restored_image_mace.png')
-cu.display_3images(gt_image, measured_image_shift[0,:,:], x_star, title1='GT', title2='noised', title3='MACE restored')
+
+mace_restored_image = cu.convert_jax_to_image(x_star)
+mace_restored_image.save('./data/restored_image_mace.png')
+cu.display_3images(gt_image, measured_images[1,:,:], x_star, title1='GT image', title2='simulated measured image', title3='MACE restored')
+
