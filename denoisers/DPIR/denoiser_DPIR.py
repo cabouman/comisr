@@ -25,7 +25,7 @@ def my_Denoiser(image_in, sigma_denoiser):
     noise_level_img = sigma_denoiser                 # set AWGN noise level for noisy image
     noise_level_model = noise_level_img  # set noise level for model
     model_name = 'drunet_gray'           # set denoiser model, 'drunet_gray' | 'drunet_color'
-    testset_name = 'eric'               # set test set,  'bsd68' | 'cbsd68' | 'set12'
+    #testset_name = 'eric'               # set test set,  'bsd68' | 'cbsd68' | 'set12'
     x8 = False                           # default: False, x8 to boost performance
     show_img = False                     # default: False
     border = 0                           # shave boader to calculate PSNR and SSIM
@@ -36,10 +36,10 @@ def my_Denoiser(image_in, sigma_denoiser):
         n_channels = 1                   # 1 for grayscale image
 
     model_pool = 'model_zoo'             # fixed
-    testsets = 'testsets'                # fixed
-    results = 'results'                  # fixed
-    task_current = 'dn'                  # 'dn' for denoising
-    result_name = testset_name + '_' + task_current + '_' + model_name
+    #testsets = 'testsets'                # fixed
+    #results = 'results'                  # fixed
+    #task_current = 'dn'                  # 'dn' for denoising
+    #result_name = testset_name + '_' + task_current + '_' + model_name
 
     model_path = os.path.join('../denoisers/DPIR/',model_pool, model_name+'.pth')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -81,7 +81,7 @@ def my_Denoiser(image_in, sigma_denoiser):
         img_E = utils_model.test_mode(model, img_L, mode=3)
 
     img_E = util.tensor2float(img_E)
-    util.imsave(img_E, 'denoised.png')
+    #util.imsave(img_E, 'denoised.png')
 
     return img_E
 
